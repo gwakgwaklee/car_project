@@ -1,39 +1,57 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert } from 'react-native';
 import React, { useState } from 'react';
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 
 export default function FindIdPasswordScreen({ navigation }) {
-    const [isFindingId, setIsFindingId] = useState(true); // true면 아이디 찾기, false면 비밀번호 찾기
-    const [name, setName] = useState(''); // 이름 상태
-    const [birthdate, setBirthdate] = useState(''); // 생년월일 상태
-    const [hintAnswer, setHintAnswer] = useState(''); // 힌트에 대한 답변 상태
-    const [hint, setHint] = useState(''); // 제공할 힌트 질문
-    const [hintVisible, setHintVisible] = useState(false); // 힌트 표시 여부
+    const placeholder = "생년월일 (YYYY-MM-DD)";
+
+    const [isFindingId, setIsFindingId] = useState(true);
+    const [name, setName] = useState('');
+    const [birthdate, setBirthdate] = useState('');
+    const [hintAnswer, setHintAnswer] = useState('');
+    const [hint, setHint] = useState('');
+    const [hintVisible, setHintVisible] = useState(false);
 
     const handleToggle = () => {
         setIsFindingId(!isFindingId);
-        setName(''); // 이름 초기화
-        setBirthdate(''); // 생년월일 초기화
-        setHintAnswer(''); // 힌트 답변 초기화
-        setHint(''); // 힌트 초기화
-        setHintVisible(false); // 힌트 표시 여부 초기화
+        setName('');
+        setBirthdate('');
+        setHintAnswer('');
+        setHint('');
+        setHintVisible(false);
+    };
+
+    const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+
+    const showDatePicker = () => {
+        setDatePickerVisibility(true);
+    };
+
+    const hideDatePicker = () => {
+        setDatePickerVisibility(false);
+    };
+
+    const handleConfirm = (date) => {
+        setBirthdate(date.toISOString().split('T')[0]);
+        hideDatePicker();
     };
 
     const fetchHint = async () => {
-        if (!isFindingId && name && birthdate) { // 비밀번호 찾기일 때만 실행
+        if (!isFindingId && name && birthdate) {
             try {
                 const response = await fetch(`http://192.168.56.1:3001/getHint`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ username: name, birthdate }), // username 사용
+                    body: JSON.stringify({ username: name, birthdate }),
                 });
 
                 const data = await response.json();
                 if (response.ok) {
-                    setHint(data.hint); // 서버로부터 받은 힌트를 상태에 저장
-                    setHintVisible(true); // 힌트 표시
+                    setHint(data.hint);
+                    setHintVisible(true);
                 } else {
                     Alert.alert('힌트 가져오기 실패', data.message || '힌트를 가져올 수 없습니다.');
                 }
@@ -46,15 +64,15 @@ export default function FindIdPasswordScreen({ navigation }) {
 
     const handleFind = async () => {
         if (!isFindingId && !hintAnswer) {
-            Alert.alert('힌트 답변을 입력해주세요.'); // 힌트 답변이 없으면 경고
+            Alert.alert('힌트 답변을 입력해주세요.');
             return;
         }
     
         const endpoint = isFindingId ? 'findID' : 'findPassword';
     
         const requestData = isFindingId
-            ? { name, birthdate } // 아이디 찾기일 때 이름과 생년월일만 보냄
-            : { username: name, birthdate, hintAnswer }; // 비밀번호 찾기일 때 모든 필드 보냄
+            ? { name, birthdate }
+            : { username: name, birthdate, hintAnswer };
     
         try {
             const response = await fetch(`http://192.168.56.1:3001/${endpoint}`, {
@@ -70,11 +88,10 @@ export default function FindIdPasswordScreen({ navigation }) {
                 if (isFindingId) {
                     Alert.alert('아이디 찾기', `아이디: ${data.username}`);
                 } else {
-                    // 비밀번호 찾기 시 모든 정보가 일치하면 비밀번호 재설정 화면으로 이동
-                    if (data.isMatch) { // 서버에서 반환된 isMatch가 true인 경우
-                        navigation.navigate('ReSetPassword', { username: name }); // 비밀번호 재설정 화면으로 이동
+                    if (data.isMatch) {
+                        navigation.navigate('ReSetPasswordScreen', { username: name });
                     } else {
-                        Alert.alert('비밀번호 찾기 실패', '힌트 답변이 맞지 않습니다.'); // 힌트 답변이 틀린 경우
+                        Alert.alert('비밀번호 찾기 실패', '힌트 답변이 맞지 않습니다.');
                     }
                 }
             } else {
@@ -89,14 +106,14 @@ export default function FindIdPasswordScreen({ navigation }) {
     return (
         <View style={styles.container}>
             <View style={styles.tabContainer}>
-                <TouchableOpacity 
-                    style={[styles.tab, isFindingId && styles.activeTab]} 
+                <TouchableOpacity
+                    style={[styles.tab, isFindingId && styles.activeTab]}
                     onPress={() => setIsFindingId(true)}
                 >
-                    <Text style={[styles.tabText, isFindingId && styles.activeTabText]}>아이디 찾기</Text>
+                    <Text style={[styles.tabText, isFindingId && styles.activeTabText]}>아이디</Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
-                    style={[styles.tab, !isFindingId && styles.activeTab]} 
+                <TouchableOpacity
+                    style={[styles.tab, !isFindingId && styles.activeTab]}
                     onPress={() => setIsFindingId(false)}
                 >
                     <Text style={[styles.tabText, !isFindingId && styles.activeTabText]}>비밀번호 찾기</Text>
@@ -105,33 +122,51 @@ export default function FindIdPasswordScreen({ navigation }) {
             <Text style={styles.title}>{isFindingId ? '아이디 찾기' : '비밀번호 찾기'}</Text>
             {isFindingId ? (
                 <>
-                    <TextInput 
-                        style={styles.input} 
-                        placeholder="이름" 
+                    <TextInput
+                        style={styles.input}
+                        placeholder="이름"
                         value={name}
                         onChangeText={setName}
                     />
-                    <TextInput 
-                        style={styles.input} 
-                        placeholder="생년월일 (YYYY-MM-DD)" 
-                        value={birthdate}
-                        onChangeText={setBirthdate}
-                    />
+                    <TouchableOpacity onPress={showDatePicker} style={styles.datePickerContainer}>
+                        <TextInput 
+                            style={styles.input} 
+                            placeholder={placeholder}
+                            value={birthdate}
+                            editable={false}
+                        />
+                        <DateTimePickerModal
+                            headerTextIOS={placeholder}
+                            isVisible={isDatePickerVisible}
+                            mode="date"
+                            onConfirm={handleConfirm}
+                            onCancel={hideDatePicker}
+                        />
+                    </TouchableOpacity>
                 </>
             ) : (
                 <>
-                    <TextInput 
-                        style={styles.input} 
-                        placeholder="아이디" 
-                        value={name} // 여기를 username 대신 name으로 수정
+                    <TextInput
+                        style={styles.input}
+                        placeholder="아이디"
+                        value={name}
                         onChangeText={setName}
                     />
-                    <TextInput 
-                        style={styles.input} 
-                        placeholder="생년월일 (YYYY-MM-DD)" 
-                        value={birthdate}
-                        onChangeText={setBirthdate}
-                    />
+                    <TouchableOpacity onPress={showDatePicker} style={styles.datePickerContainer}>
+                        <TextInput 
+                            style={styles.input} 
+                            placeholder={placeholder}
+                            value={birthdate}
+                            editable={false}
+                        />
+                        <DateTimePickerModal
+                            headerTextIOS={placeholder}
+                            isVisible={isDatePickerVisible}
+                            mode="date"
+                            onConfirm={handleConfirm}
+                            onCancel={hideDatePicker}
+                        />
+                    </TouchableOpacity>
                     {!hintVisible ? (
                         <TouchableOpacity style={styles.button} onPress={fetchHint}>
                             <Text style={styles.buttonText}>힌트 보기</Text>
@@ -139,9 +174,9 @@ export default function FindIdPasswordScreen({ navigation }) {
                     ) : (
                         <Text style={styles.hintText}>{hint}</Text>
                     )}
-                    <TextInput 
-                        style={styles.input} 
-                        placeholder="힌트 답변" 
+                    <TextInput
+                        style={styles.input}
+                        placeholder="힌트 답변"
                         value={hintAnswer}
                         onChangeText={setHintAnswer}
                     />
@@ -160,9 +195,9 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#f0f8ff',
         alignItems: 'center',
-        justifyContent: 'flex-start', // 수직 정렬을 위쪽으로 설정
+        justifyContent: 'flex-start',
         padding: 20,
-        marginTop: 20, // 전체적으로 위로 밀기 위해 marginTop 추가
+        marginTop: 20,
     },
     title: {
         fontSize: 30,
@@ -178,6 +213,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
         marginBottom: 15,
         backgroundColor: '#fff',
+        fontSize: 16, // 텍스트 사이즈를 통일
+    },
+    datePickerContainer: {
+        width: '100%',
+        marginBottom: 15,
     },
     button: {
         width: '100%',
@@ -217,7 +257,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     hintText: {
-        fontSize: 18, // 힌트 크기를 18로 키움
+        fontSize: 18,
         color: '#555',
         marginBottom: 5,
     },

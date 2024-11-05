@@ -26,7 +26,7 @@ export default function App() {
         <Stack.Screen 
           name="FindIdPasswordScreen" 
           component={FindIdPasswordScreen} 
-          options={{ title: '아이디 찾기' }} // 아이디 찾기 화면 제목 설정
+          options={{ title: '아이디/비밀번호 찾기' }} // 아이디 찾기 화면 제목 설정
         />
         <Stack.Screen 
           name="ReSetPasswordScreen" // 이름 수정

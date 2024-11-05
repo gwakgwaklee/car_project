@@ -11,7 +11,7 @@ app.use(express.json()); // JSON 요청을 파싱
 const db = mysql.createConnection({
     host: 'localhost',
     user: 'root',
-    password: 'asd',    // 비번 변경
+    password: '1234',    // 비번 변경
     database: 'CarFull'
 });
 
@@ -75,6 +75,30 @@ app.post('/findID', (req, res) => {
     }
   });
 });
+
+// 비밀번호 찾기
+app.post('/findPassword', (req, res) => {
+    const { username, birthdate, hintAnswer } = req.body;
+
+    // 사용자의 정보를 확인
+    const query = 'SELECT hint_answer FROM users WHERE username = ? AND birthdate = ?';
+    db.query(query, [username, birthdate], (error, results) => {
+        if (error) {
+            console.error(error);
+            return res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+        } else if (results.length > 0) {
+            // 힌트 답변 확인
+            if (results[0].hint_answer === hintAnswer) {
+                return res.status(200).json({ isMatch: true }); // 일치하는 경우
+            } else {
+                return res.status(200).json({ isMatch: false }); // 일치하지 않는 경우
+            }
+        } else {
+            return res.status(404).json({ message: '해당 정보와 일치하는 사용자가 없습니다.' });
+        }
+    });
+});
+
 
 // 힌트 가져오기
 app.post('/getHint', (req, res) => {
