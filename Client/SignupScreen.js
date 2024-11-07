@@ -12,7 +12,7 @@ export default function SignupScreen() {
 
     const handleSignup = async () => {
         try {
-            const response = await fetch('http://192.168.56.1:3001/signup', { // IP 주소로 변경
+            const response = await fetch('https://port-0-car-project-m36t9oitd12e09cb.sel4.cloudtype.app/signup', { // IP 주소로 변경
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

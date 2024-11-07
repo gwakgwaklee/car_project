@@ -40,7 +40,7 @@ export default function FindIdPasswordScreen({ navigation }) {
     const fetchHint = async () => {
         if (!isFindingId && name && birthdate) {
             try {
-                const response = await fetch(`http://192.168.56.1:3001/getHint`, {
+                const response = await fetch(`https://port-0-car-project-m36t9oitd12e09cb.sel4.cloudtype.app/getHint`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -75,7 +75,7 @@ export default function FindIdPasswordScreen({ navigation }) {
             : { username: name, birthdate, hintAnswer };
     
         try {
-            const response = await fetch(`http://192.168.56.1:3001/${endpoint}`, {
+            const response = await fetch(`https://port-0-car-project-m36t9oitd12e09cb.sel4.cloudtype.app/${endpoint}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

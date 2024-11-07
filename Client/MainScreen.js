@@ -22,7 +22,7 @@ export default function MainScreen({ navigation }) {
 
   const handleLogin = async () => {
     try {
-      const response = await fetch('http://192.168.56.1:3001/login', { // 서버의 로그인 API 주소
+      const response = await fetch('https://port-0-car-project-m36t9oitd12e09cb.sel4.cloudtype.app/login', { // 서버의 로그인 API 주소
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
