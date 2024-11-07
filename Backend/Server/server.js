@@ -11,7 +11,7 @@ app.use(express.json()); // JSON 요청을 파싱
 const db = mysql.createConnection({
     host: 'svc.sel4.cloudtype.app', // 호스트 주소
     user: 'root',                   // 사용자 이름
-    password: 'your_password',      // 데이터베이스 비밀번호
+    password: '1234',      // 데이터베이스 비밀번호
     database: 'CarFull',            // 사용할 데이터베이스 이름
     port: 30240                     // 포트 번호
 });
