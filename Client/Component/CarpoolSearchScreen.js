@@ -4,9 +4,13 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 export default function CarpoolSearchPage() {
   const [carpoolList, setCarpoolList] = useState([]);
 
-  // API 호출하여 데이터 가져오기
   useEffect(() => {
-    fetch('https://port-0-car-project-m36t9oitd12e09cb.sel4.cloudtype.app/carpool')
+    fetch('https://port-0-car-project-m36t9oitd12e09cb.sel4.cloudtype.app/carpool', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
       .then(response => response.json())
       .then(data => setCarpoolList(data))
       .catch(error => console.error('Error fetching data:', error));
