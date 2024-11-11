@@ -5,16 +5,22 @@ export default function CarpoolSearchPage() {
   const [carpoolList, setCarpoolList] = useState([]);
 
   useEffect(() => {
-    fetch('https://port-0-car-project-m36t9oitd12e09cb.sel4.cloudtype.app/carpool', {
+    fetch('https://port-0-car-project-m36t9oitd12e09cb.sel4.cloudtype.app/carpool_all', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
     })
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
       .then(data => setCarpoolList(data))
       .catch(error => console.error('Error fetching data:', error));
   }, []);
+  
 
   return (
     <ScrollView style={styles.container}>

@@ -120,7 +120,7 @@ app.post('/getHint', (req, res) => {
 
 
 // 카풀 데이터 불러오기 
-app.post('/carpool', (req, res) => {
+app.post('/carpool_all', (req, res) => {
     db.query('SELECT * FROM carpool', (err, results) => {
         if (err) {
             console.error('Database error:', err);
