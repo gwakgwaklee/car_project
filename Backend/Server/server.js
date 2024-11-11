@@ -118,14 +118,16 @@ app.post('/getHint', (req, res) => {
     });
 });
 
-// 카풀 데이터 가져오기 API
-app.get('/carpool', (req, res) => {
+// 카풀 데이터 불러오기
+app.post('/carpool', (req, res) => {
     db.query('SELECT * FROM carpool', (err, results) => {
-      if (err) throw err;
-      res.json(results);
+        if (err) {
+            console.error('Database error:', err);
+            return res.status(500).json({ message: 'Internal Server Error' });
+        }
+        res.json(results);
     });
-  });
-
+});
 
 // 기본 라우트
 app.get('/', (req, res) => {
