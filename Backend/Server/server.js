@@ -118,7 +118,13 @@ app.post('/getHint', (req, res) => {
     });
 });
 
-
+// 카풀 데이터 가져오기 API
+app.get('/carpool', (req, res) => {
+    db.query('SELECT * FROM carpool', (err, results) => {
+      if (err) throw err;
+      res.json(results);
+    });
+  });
 
 
 // 기본 라우트
