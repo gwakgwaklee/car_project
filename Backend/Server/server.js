@@ -118,7 +118,6 @@ app.post('/getHint', (req, res) => {
     });
 });
 
-
 // 카풀 데이터 불러오기 
 app.post('/carpool_all', (req, res) => {
     db.query('SELECT * FROM carpool', (err, results) => {
@@ -127,6 +126,42 @@ app.post('/carpool_all', (req, res) => {
             return res.status(500).json({ message: 'Internal Server Error' });
         }
         res.json(results);
+    });
+});
+
+
+// 카풀 생성 엔드포인트
+app.post('/createCarpool', (req, res) => {
+    const { room_id, driver, passengers, date, start_region,end_region, start_time, details } = req.body;
+
+    // carpool 테이블에 데이터 삽입
+    const insertCarpoolQuery = `
+        INSERT INTO carpool (room_id, driver, passengers, date, start_region, end_region, start_time)
+        VALUES (?, ?, ?, ?, ?, ?)
+    `;
+    const carpoolParams = [room_id, driver, passengers, date, start_region,end_region, start_time];
+
+    db.query(insertCarpoolQuery, carpoolParams, (err, result) => {
+        if (err) {
+            console.error('Error inserting into carpool:', err);
+            return res.status(500).json({ message: '카풀 생성 중 오류가 발생했습니다.' });
+        }
+
+        // carpool_ect 테이블에 데이터 삽입
+        const insertCarpoolEctQuery = `
+            INSERT INTO carpool_etc (room_id, details)
+            VALUES (?, ?)
+        `;
+        const carpoolEctParams = [room_id, details];
+
+        db.query(insertCarpoolEctQuery, carpoolEctParams, (err, result) => {
+            if (err) {
+                console.error('Error inserting into carpool_etc:', err);
+                return res.status(500).json({ message: '카풀 세부사항 저장 중 오류가 발생했습니다.' });
+            }
+
+            res.status(201).json({ message: '카풀이 성공적으로 생성되었습니다!' });
+        });
     });
 });
 
