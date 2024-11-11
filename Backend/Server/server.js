@@ -129,7 +129,6 @@ app.post('/carpool', (req, res) => {
     });
 });
 
-
 // 기본 라우트
 app.get('/', (req, res) => {
     res.send('Hello World!');
