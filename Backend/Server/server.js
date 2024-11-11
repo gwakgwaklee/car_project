@@ -4,7 +4,11 @@ const cors = require('cors');
 const app = express();
 const port = 3001; // 클라이언트와 일치하는 포트로 설정
 
-app.use(cors());
+app.use(cors({
+    origin: 'https://port-0-car-project-m36t9oitd12e09cb.sel4.cloudtype.app', // 서버 URL
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type']
+}));
 app.use(express.json()); // JSON 요청을 파싱
 
 // MySQL 연결 설정
