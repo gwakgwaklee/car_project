@@ -142,7 +142,7 @@ app.post('/createCarpool', (req, res) => {
     // carpool 테이블에 데이터 삽입
     const insertCarpoolQuery = `
         INSERT INTO carpool (room_id, driver, passengers, date, start_region, end_region, start_time)
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?,?)
     `;
     const carpoolParams = [room_id, driver, passengers, date, start_region,end_region, start_time];
 
