@@ -137,26 +137,22 @@ app.post('/carpool_all', (req, res) => {
 
 // 카풀 생성 엔드포인트
 app.post('/createCarpool', (req, res) => {
-    const { room_id, driver, passengers, date, start_region,end_region, start_time, details } = req.body;
+    const { room_id, driver, passengers, max_passenger, date, start_time, created_at, start_region, end_region,  details } = req.body;
 
+    console.log('Received POST request for /createCarpool');
     // carpool 테이블에 데이터 삽입
-    const insertCarpoolQuery = `
-        INSERT INTO carpool (room_id, driver, passengers, date, start_region, end_region, start_time)
-        VALUES (?, ?, ?, ?, ?, ?,?)
-    `;
-    const carpoolParams = [room_id, driver, passengers, date, start_region,end_region, start_time];
+    const insertCarpoolQuery = 'INSERT INTO carpool (room_id, driver, passengers, max_passenger, date, , start_time, created_at, start_region, end_region) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
+    const carpoolParams = [room_id, driver, passengers, max_passenger, date, , start_time, created_at, start_region, end_region];
 
     db.query(insertCarpoolQuery, carpoolParams, (err, result) => {
         if (err) {
+            console.log('err=', err)
             console.error('Error inserting into carpool:', err);
             return res.status(500).json({ message: '카풀 생성 중 오류가 발생했습니다.' });
         }
 
         // carpool_ect 테이블에 데이터 삽입
-        const insertCarpoolEctQuery = `
-            INSERT INTO carpool_etc (room_id, details)
-            VALUES (?, ?)
-        `;
+        const insertCarpoolEctQuery = 'INSERT INTO carpool_etc (room_id, details) VALUES (?, ?)';
         const carpoolEctParams = [room_id, details];
 
         db.query(insertCarpoolEctQuery, carpoolEctParams, (err, result) => {
@@ -169,6 +165,21 @@ app.post('/createCarpool', (req, res) => {
         });
     });
 });
+
+// 회원 탈퇴 엔드포인트
+app.delete('/deleteUser', (req, res) => {
+    const { userid } = req.body; // 클라이언트에서 전달받은 유저 ID
+
+    const deleteUserQuery = 'DELETE FROM users WHERE id = ?';
+    db.query(deleteUserQuery, [userid], (err, result) => {
+        if (err) {
+            console.error('Error deleting user:', err);
+            return res.status(500).json({ message: '회원 탈퇴 중 오류가 발생했습니다.' });
+        }
+        res.status(200).json({ message: '회원 탈퇴가 성공적으로 완료되었습니다.' });
+    });
+});
+
 
 // 기본 라우트
 app.get('/', (req, res) => {
