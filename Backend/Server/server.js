@@ -141,7 +141,7 @@ app.post('/createCarpool', (req, res) => {
 
     console.log('Received POST request for /createCarpool');
     // carpool 테이블에 데이터 삽입
-    const insertCarpoolQuery = 'INSERT INTO carpool (room_id, driver, passengers, max_passenger, date, start_time, created_at, start_region, end_region) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
+    const insertCarpoolQuery = 'INSERT INTO carpool (room_id, driver, passengers, max_passenger, date, start_time, created_at, start_region, end_region) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
     const carpoolParams = [room_id, driver, passengers, max_passenger, date, start_time, created_at, start_region, end_region];
 
     db.query(insertCarpoolQuery, carpoolParams, (err, result) => {
