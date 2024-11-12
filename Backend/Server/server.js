@@ -168,10 +168,10 @@ app.post('/createCarpool', (req, res) => {
 
 // 회원 탈퇴 엔드포인트
 app.delete('/deleteUser', (req, res) => {
-    const { userid } = req.body; // 클라이언트에서 전달받은 유저 ID
+    const { id } = req.body; // 클라이언트에서 전달받은 유저 ID
 
     const deleteUserQuery = 'DELETE FROM users WHERE id = ?';
-    db.query(deleteUserQuery, [userid], (err, result) => {
+    db.query(deleteUserQuery, [id], (err, result) => {
         if (err) {
             console.error('Error deleting user:', err);
             return res.status(500).json({ message: '회원 탈퇴 중 오류가 발생했습니다.' });
