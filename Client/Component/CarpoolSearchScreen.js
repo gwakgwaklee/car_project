@@ -5,22 +5,29 @@ export default function CarpoolSearchPage() {
   const [carpoolList, setCarpoolList] = useState([]);
 
   useEffect(() => {
-    fetch('https://port-0-car-project-m36t9oitd12e09cb.sel4.cloudtype.app/carpool_all', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-      .then(response => {
+    const fetchCarpoolData = async () => {
+      try {
+        const response = await fetch('https://port-0-car-project-m36t9oitd12e09cb.sel4.cloudtype.app/carpool_all', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        console.log('Carpool Data:', data); // 데이터 콘솔에 출력
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        return response.json();
-      })
-      .then(data => setCarpoolList(data))
-      .catch(error => console.error('Error fetching data:', error));
+
+        const data = await response.json();
+        console.log('Carpool Data:', data); // 데이터 콘솔에 출력
+        setCarpoolList(data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    fetchCarpoolData(); // 비동기 함수 호출
   }, []);
-  
 
   return (
     <ScrollView style={styles.container}>
