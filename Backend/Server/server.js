@@ -137,12 +137,12 @@ app.post('/carpool_all', (req, res) => {
 
 // 카풀 생성 엔드포인트
 app.post('/createCarpool', (req, res) => {
-    const { room_id, driver, passengers, max_passenger, date, start_time, created_at, start_region, end_region,  details } = req.body;
+    const { room_id, driver, passengers, max_passengers, date, start_time, created_at, start_region, end_region,  details } = req.body;
 
     console.log('Received POST request for /createCarpool');
     // carpool 테이블에 데이터 삽입
-    const insertCarpoolQuery = 'INSERT INTO carpool (room_id, driver, passengers, max_passenger, date, start_time, created_at, start_region, end_region) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
-    const carpoolParams = [room_id, driver, passengers, max_passenger, date, start_time, created_at, start_region, end_region];
+    const insertCarpoolQuery = 'INSERT INTO carpool (room_id, driver, passengers, max_passengers, date, start_time, created_at, start_region, end_region) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
+    const carpoolParams = [room_id, driver, passengers, max_passengers, date, start_time, created_at, start_region, end_region];
 
     db.query(insertCarpoolQuery, carpoolParams, (err, result) => {
         if (err) {
