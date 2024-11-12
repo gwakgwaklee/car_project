@@ -6,7 +6,7 @@ const port = 3001; // 클라이언트와 일치하는 포트로 설정
 
 app.use(cors({
     origin: 'https://port-0-car-project-m36t9oitd12e09cb.sel4.cloudtype.app', // 서버 URL
-    methods: ['GET', 'POST'],
+    methods: ['GET', 'POST', 'DELETE'],
     allowedHeaders: ['Content-Type']
 }));
 app.use(express.json()); // JSON 요청을 파싱
@@ -142,7 +142,7 @@ app.post('/createCarpool', (req, res) => {
     console.log('Received POST request for /createCarpool');
     // carpool 테이블에 데이터 삽입
     const insertCarpoolQuery = 'INSERT INTO carpool (room_id, driver, passengers, max_passenger, date, , start_time, created_at, start_region, end_region) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
-    const carpoolParams = [room_id, driver, passengers, max_passenger, date, , start_time, created_at, start_region, end_region];
+    const carpoolParams = [room_id, driver, passengers, max_passenger, date, start_time, created_at, start_region, end_region];
 
     db.query(insertCarpoolQuery, carpoolParams, (err, result) => {
         if (err) {
