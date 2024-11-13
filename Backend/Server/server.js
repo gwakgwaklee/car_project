@@ -180,7 +180,7 @@ app.delete('/deleteUser', (req, res) => {
 // 비밀번호 변경 엔드포인트
 app.post('/changePassword', (req, res) => {
     const { id, newPassword } = req.body; // 유저 id와 새 비밀번호를 클라이언트에서 받아옴
-    console.log(id);
+
     const query = 'UPDATE users SET password = ? WHERE id = ?';
     db.query(query, [newPassword, id], (err, result) => {
         if (err) {
@@ -194,7 +194,24 @@ app.post('/changePassword', (req, res) => {
     });
 });
 
+// 유저 ID를 사용하여 카풀 데이터를 가져오는 엔드포인트
+app.get('/getCarpoolByUserId/:userid', (req, res) => {
+    const { userid } = req.params; // URL 파라미터로 유저 ID를 받음
 
+    const query = 'SELECT * FROM usrs WHERE username = ?'; // 예: driver 컬럼이 해당 유저 ID를 참조한다고 가정
+    db.query(query, [userid], (err, results) => {
+        if (err) {
+            console.error('Error fetching carpool data:', err);
+            return res.status(500).json({ message: '카풀 데이터를 가져오는 중 오류가 발생했습니다.' });
+        }
+        
+        if (results.length > 0) {
+            return res.status(200).json(results);
+        } else {
+            return res.status(404).json({ message: '해당 유저의 카풀 데이터가 없습니다.' });
+        }
+    });
+});
 
 // 기본 라우트
 app.get('/', (req, res) => {
