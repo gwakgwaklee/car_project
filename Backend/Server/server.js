@@ -194,21 +194,19 @@ app.post('/changePassword', (req, res) => {
     });
 });
 
-// 유저 ID를 사용하여 카풀 데이터를 가져오는 엔드포인트
-app.get('/getCarpoolByUserId/:userid', (req, res) => {
-    const { userid } = req.params; // URL 파라미터로 유저 ID를 받음
+app.get('/getUserId', (req, res) => {
+    const { username } = req.query; // 클라이언트에서 username을 쿼리로 전달받음
 
-    const query = 'SELECT * FROM usrs WHERE username = ?'; // 예: driver 컬럼이 해당 유저 ID를 참조한다고 가정
-    db.query(query, [userid], (err, results) => {
+    const query = 'SELECT id FROM users WHERE username = ?';
+    db.query(query, [username], (err, results) => {
         if (err) {
-            console.error('Error fetching carpool data:', err);
-            return res.status(500).json({ message: '카풀 데이터를 가져오는 중 오류가 발생했습니다.' });
+            console.error('Error fetching user ID:', err);
+            return res.status(500).json({ message: '서버 오류가 발생했습니다.' });
         }
-        
         if (results.length > 0) {
-            return res.status(200).json(results);
+            return res.status(200).json({ id: results[0].id });
         } else {
-            return res.status(404).json({ message: '해당 유저의 카풀 데이터가 없습니다.' });
+            return res.status(404).json({ message: '해당 유저를 찾을 수 없습니다.' });
         }
     });
 });
