@@ -180,7 +180,7 @@ app.delete('/deleteUser', (req, res) => {
 // 비밀번호 변경 엔드포인트
 app.post('/changePassword', (req, res) => {
     const { id, newPassword } = req.body; // 유저 id와 새 비밀번호를 클라이언트에서 받아옴
-
+    console.log(id);
     const query = 'UPDATE users SET password = ? WHERE id = ?';
     db.query(query, [newPassword, id], (err, result) => {
         if (err) {
