@@ -177,6 +177,24 @@ app.delete('/deleteUser', (req, res) => {
     });
 });
 
+// 비밀번호 변경 엔드포인트
+app.post('/changePassword', (req, res) => {
+    const { id, newPassword } = req.body; // 유저 id와 새 비밀번호를 클라이언트에서 받아옴
+
+    const query = 'UPDATE users SET password = ? WHERE id = ?';
+    db.query(query, [newPassword, id], (err, result) => {
+        if (err) {
+            console.error('Error updating password:', err);
+            return res.status(500).json({ message: '비밀번호 변경 중 오류가 발생했습니다.' });
+        }
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: '해당 사용자를 찾을 수 없습니다.' });
+        }
+        res.status(200).json({ message: '비밀번호가 성공적으로 변경되었습니다.' });
+    });
+});
+
+
 
 // 기본 라우트
 app.get('/', (req, res) => {
