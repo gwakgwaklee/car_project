@@ -124,12 +124,9 @@ app.post('/getHint', (req, res) => {
 
 // 카풀 데이터 불러오기
 app.post('/carpool_all', (req, res) => {
-    console.log('Received POST request for /carpool_all');
-    db.query('SELECT * FROM carpool', (err, results) => {
-        if (err) {
-            console.error('Database error:', err);
-            return res.status(500).json({ message: 'Internal Server Error' });
-        }
+    const query = 'SELECT * FROM carpool';
+    db.query(query, (err, results) => {
+        if (err) throw err;
         res.json(results);
     });
 });
