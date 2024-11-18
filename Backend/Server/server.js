@@ -197,7 +197,7 @@ app.post('/resendCode', (req, res) => {
 app.post('/signup', (req, res) => {
     const { username, password, birthdate, name, hint, hintAnswer, email } = req.body;
     // 6자리 랜덤 인증 코드 생성
-    const verification_code = Math.floor(100000 + Math.random() * 900000);
+    let verification_code = Math.floor(100000 + Math.random() * 900000);
     const code_expiration = dayjs().add(10, 'minutes').format('YYYY-MM-DD HH:mm:ss'); // 10분 뒤 만료
     console.log('Generated Code:', verification_code);
     console.log("Environment Variables:", process.env);
