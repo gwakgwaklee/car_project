@@ -194,6 +194,7 @@ app.post('/signup', (req, res) => {
     // 6자리 랜덤 인증 코드 생성
     const verification_code = Math.floor(100000 + Math.random() * 900000);
     const code_expiration = dayjs().add(10, 'minutes').format('YYYY-MM-DD HH:mm:ss'); // 10분 뒤 만료
+    console.log("Environment Variables:", process.env);
     console.log('GMAIL ADDRESS:', process.env.REACT_APP_GMAIL_ADDRESS);
     console.log('GMAIL PASSWORD:', process.env.REACT_APP_GMAIL_PASSWORD);
 
