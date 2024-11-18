@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
@@ -6,7 +7,6 @@ const dayjs = require('dayjs');
 const app = express();
 const port = 3001; // 클라이언트와 일치하는 포트로 설정
 
-require("dotenv").config();
 const mailer = require('./mailer.js');
 
 app.use(cors({
