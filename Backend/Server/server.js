@@ -207,10 +207,10 @@ app.post('/signup', (req, res) => {
 
             // 이메일 전송
             mailer(
-                name,                          // 발신자 이름
+                username,                          // 발신자 이름
                 email,                         // 수신자 이메일
                 '회원가입 인증 코드',           // 이메일 제목
-                `<p>안녕하세요, <b>${name}</b>님!</p>
+                `<p>안녕하세요, <b>${username}</b>님!</p>
                  <p>회원가입을 완료하려면 아래 인증 코드를 입력해주세요.</p>
                  <h3>인증 코드: <b>${verification_code}</b></h3>
                  <p>이 코드는 10분 동안 유효합니다.</p>` // HTML 메시지 내용
