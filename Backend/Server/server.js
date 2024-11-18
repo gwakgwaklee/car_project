@@ -195,8 +195,8 @@ app.post('/signup', (req, res) => {
     const verification_code = Math.floor(100000 + Math.random() * 900000);
     const code_expiration = dayjs().add(10, 'minutes').format('YYYY-MM-DD HH:mm:ss'); // 10분 뒤 만료
     console.log("Environment Variables:", process.env);
-    console.log('GMAIL ADDRESS:', process.env.GMAIL_ADDRESS);
-    console.log('GMAIL PASSWORD:', process.env.GMAIL_PASSWORD);
+    console.log('GMAIL ADDRESS:', process.env.REACT_APP_GMAIL_ADDRESS);
+    console.log('GMAIL PASSWORD:', process.env.REACT_APP_GMAIL_PASSWORD);
 
     db.query(
         'INSERT INTO users (username, email, verification_code, code_expiration, password, birthdate, name, hint, hint_answer) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
