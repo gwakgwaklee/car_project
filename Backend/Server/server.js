@@ -1,11 +1,13 @@
 const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
-const nodemailer = require('nodemailer');
 const dayjs = require('dayjs');
 
 const app = express();
 const port = 3001; // 클라이언트와 일치하는 포트로 설정
+
+require("dotenv").config();
+const mailer = require('./mailer.js');
 
 app.use(cors({
     origin: 'https://port-0-car-project-m36t9oitd12e09cb.sel4.cloudtype.app', // 서버 URL
@@ -15,16 +17,6 @@ app.use(cors({
 app.use(express.json()); // JSON 요청을 파싱
 
 
-
-// Nodemailer SMTP 설정
-const transporter = nodemailer.createTransport({
-    service: 'Gmail', // Gmail 사용 (다른 SMTP 서버도 가능)
-    auth: {
-        user: 'your-email@gmail.com', // 발신자 이메일
-        pass: 'your-email-password', // 발신자 이메일 비밀번호
-    },
-});
-
 // MySQL 연결 설정
 const db = mysql.createConnection({
     host: 'svc.sel4.cloudtype.app', // 호스트 주소
@@ -33,6 +25,18 @@ const db = mysql.createConnection({
     database: 'CarFull',            // 사용할 데이터베이스 이름
     port: 30240                     // 포트 번호
 });
+
+
+// Nodemailer SMTP 설정
+const transporter = nodemailer.createTransport({
+    host: "smtp.ethereal.email",
+    port: 587,
+    secure: false, // true for port 465, false for other ports
+    auth: {
+      user: "maddison53@ethereal.email",
+      pass: "jn7jnAPss4f63QBp6D",
+    },
+  });
 
 // MySQL 연결
 db.connect((err) => {
@@ -147,20 +151,54 @@ app.post('/resendCode', (req, res) => {
     );
 });
 
+// // 회원가입 엔드포인트
+// app.post('/signup', (req, res) => {
+//     const { username, password, birthdate, name, hint, hintAnswer, email } = req.body;
+//     // 6자리 랜덤 인증 코드 생성
+//     const verification_code = Math.floor(100000 + Math.random() * 900000);
+//     const code_expiration = dayjs().add(10, 'minutes').format('YYYY-MM-DD HH:mm:ss'); // 10분 뒤 만료
 
+
+//     db.query(
+//         'INSERT INTO users (username, email, verification_code, code_expiration, password, birthdate, name, hint, hint_answer) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+//         [username, email, verification_code, code_expiration, password, birthdate, name, hint, hintAnswer],
+//         (err, result) => {
+//             if (err) {
+//                 console.error('Error inserting user:', err);
+//                 return res.status(500).json({ message: '회원가입 중 오류가 발생했습니다.' });
+//             }
+
+//             // 이메일 전송
+//             const mailOptions = {
+//                 from: 'your-email@gmail.com', // 발신자 이메일
+//                 to: email, // 수신자 이메일
+//                 subject: '회원가입 인증 코드',
+//                 text: `안녕하세요, ${name}님! 인증 코드는 ${verification_code}입니다.`,
+//             };
+
+//             transporter.sendMail(mailOptions, (error, info) => {
+//                 if (error) {
+//                     console.error('Error sending email:', error);
+//                     return res.status(500).json({ message: '이메일 전송 중 오류가 발생했습니다.' });
+//                 }
+//                 res.status(201).json({ message: '회원가입 성공! 이메일로 인증 코드를 발송했습니다.' });
+//             });
+//         }
+//     );
+// });
 
 
 // 회원가입 엔드포인트
 app.post('/signup', (req, res) => {
     const { username, password, birthdate, name, hint, hintAnswer, email } = req.body;
     // 6자리 랜덤 인증 코드 생성
-    const verificationCode = Math.floor(100000 + Math.random() * 900000);
-    const expirationTime = dayjs().add(10, 'minutes').format('YYYY-MM-DD HH:mm:ss'); // 10분 뒤 만료
+    const verification_code = Math.floor(100000 + Math.random() * 900000);
+    const code_expiration = dayjs().add(10, 'minutes').format('YYYY-MM-DD HH:mm:ss'); // 10분 뒤 만료
 
 
     db.query(
         'INSERT INTO users (username, email, verification_code, code_expiration, password, birthdate, name, hint, hint_answer) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [username, email, verificationCode, expirationTime, password, birthdate, name, hint, hintAnswer],
+        [username, email, verification_code, code_expiration, password, birthdate, name, hint, hintAnswer],
         (err, result) => {
             if (err) {
                 console.error('Error inserting user:', err);
@@ -168,19 +206,26 @@ app.post('/signup', (req, res) => {
             }
 
             // 이메일 전송
-            const mailOptions = {
-                from: 'your-email@gmail.com', // 발신자 이메일
-                to: email, // 수신자 이메일
-                subject: '회원가입 인증 코드',
-                text: `안녕하세요, ${name}님! 인증 코드는 ${verificationCode}입니다.`,
-            };
-
-            transporter.sendMail(mailOptions, (error, info) => {
-                if (error) {
-                    console.error('Error sending email:', error);
+            mailer(
+                name,                          // 발신자 이름
+                email,                         // 수신자 이메일
+                '회원가입 인증 코드',           // 이메일 제목
+                `<p>안녕하세요, <b>${name}</b>님!</p>
+                 <p>회원가입을 완료하려면 아래 인증 코드를 입력해주세요.</p>
+                 <h3>인증 코드: <b>${verification_code}</b></h3>
+                 <p>이 코드는 10분 동안 유효합니다.</p>` // HTML 메시지 내용
+            )
+            .then((response) => {
+                if (response === 'success') {
+                    return res.status(201).json({ message: '회원가입 성공! 이메일로 인증 코드를 발송했습니다.' });
+                } else {
+                    console.error('Error sending email:', response);
                     return res.status(500).json({ message: '이메일 전송 중 오류가 발생했습니다.' });
                 }
-                res.status(201).json({ message: '회원가입 성공! 이메일로 인증 코드를 발송했습니다.' });
+            })
+            .catch((error) => {
+                console.error('Email Error:', error);
+                return res.status(500).json({ message: '이메일 전송 중 오류가 발생했습니다.' });
             });
         }
     );
