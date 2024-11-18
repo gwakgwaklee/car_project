@@ -323,6 +323,35 @@ app.post('/carpool_etc', (req, res) => {
     });
 });
 
+// 카풀을 신청하는 부분
+app.post('/update_passengers', async (req, res) => {
+    const { userId, roomId } = req.body;
+  
+    if (!userId || !roomId) {
+      return res.status(400).json({ message: '필수 값이 누락되었습니다.' });
+    }
+  
+    try {
+      // 데이터베이스에서 roomId에 해당하는 카풀 데이터 가져오기
+      const carpool = await Carpool.findById(roomId);
+      if (!carpool) {
+        return res.status(404).json({ message: '카풀을 찾을 수 없습니다.' });
+      }
+  
+      // passengers에 userId가 이미 있는지 확인
+      if (!carpool.passengers.includes(userId)) {
+        carpool.passengers.push(userId); // userId 추가
+        await carpool.save(); // 데이터베이스에 저장
+      } else {
+        return res.status(400).json({ message: '이미 신청된 사용자입니다.' });
+      }
+  
+      res.status(200).json({ message: '신청 성공', passengers: carpool.passengers });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: '서버 오류 발생' });
+    }
+  });
 // 카풀 생성 엔드포인트
 app.post('/createCarpool', (req, res) => {
     const { room_id, driver, passengers, max_passengers, date, start_time, created_at, start_region, end_region,  details } = req.body;
