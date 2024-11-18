@@ -122,6 +122,7 @@ app.post('/resendCode', (req, res) => {
     const newCode = Math.floor(100000 + Math.random() * 900000);
     const newExpiration = dayjs().add(10, 'minute').format('YYYY-MM-DD HH:mm:ss');
 
+    console.log('Generated New Code:', newCode);
     // 데이터베이스 업데이트
     db.query(
         'UPDATE users SET verification_code = ?, code_expiration = ? WHERE username = ? AND email = ?',
@@ -136,20 +137,22 @@ app.post('/resendCode', (req, res) => {
                 return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
             }
 
-            // 이메일 발송
+            // 이메일 전송
             const mailOptions = {
-                from: 'your-email@gmail.com',
+                from: process.env.REACT_APP_GMAIL_ADDRESS,
                 to: email,
                 subject: '새 인증 코드',
                 text: `새 인증 코드는 ${newCode}입니다. 10분 이내에 인증을 완료하세요.`,
             };
 
+            const transporter = mailer();
             transporter.sendMail(mailOptions, (error, info) => {
                 if (error) {
                     console.error('Error sending email:', error);
                     return res.status(500).json({ message: '이메일 전송 중 오류가 발생했습니다.' });
                 }
 
+                console.log('Email sent successfully:', info.response);
                 res.status(200).json({ message: '새 인증 코드가 이메일로 전송되었습니다.' });
             });
         }
@@ -197,7 +200,7 @@ app.post('/resendCode', (req, res) => {
 app.post('/signup', (req, res) => {
     const { username, password, birthdate, name, hint, hintAnswer, email } = req.body;
     // 6자리 랜덤 인증 코드 생성
-    let verification_code = Math.floor(100000 + Math.random() * 900000);
+    const verification_code = Math.floor(100000 + Math.random() * 900000);
     const code_expiration = dayjs().add(10, 'minutes').format('YYYY-MM-DD HH:mm:ss'); // 10분 뒤 만료
     console.log('Generated Code:', verification_code);
     console.log("Environment Variables:", process.env);
@@ -321,49 +324,6 @@ app.post('/carpool_etc', (req, res) => {
             return res.status(500).json({ message: 'carpool_etc 데이터 가져오는 중 오류가 발생했습니다.' });
         }
         res.json(results);
-    });
-});
-
-// 카풀을 신청하는 부분
-app.post('/update_passengers', (req, res) => {
-    const { userId, roomId } = req.body;
-
-    if (!userId || !roomId) {
-        return res.status(400).json({ message: '필수 값이 누락되었습니다.' });
-    }
-
-    // roomId에 해당하는 카풀 데이터를 가져오기
-    const getCarpoolQuery = 'SELECT passengers FROM carpool WHERE room_id = ?';
-    db.query(getCarpoolQuery, [roomId], (err, results) => {
-        if (err) {
-            console.error('Error fetching carpool data:', err);
-            return res.status(500).json({ message: '서버 오류 발생' });
-        }
-
-        if (results.length === 0) {
-            return res.status(404).json({ message: '카풀을 찾을 수 없습니다.' });
-        }
-
-        let passengers = results[0].passengers ? results[0].passengers.split(',') : [];
-
-        // 이미 신청된 사용자라면 에러 반환
-        if (passengers.includes(userId)) {
-            return res.status(400).json({ message: '이미 신청된 사용자입니다.' });
-        }
-
-        // 새로운 사용자를 추가하고 저장
-        passengers.push(userId);
-        const updatedPassengers = passengers.join(',');
-
-        const updateQuery = 'UPDATE carpool SET passengers = ? WHERE room_id = ?';
-        db.query(updateQuery, [updatedPassengers, roomId], (updateErr) => {
-            if (updateErr) {
-                console.error('Error updating passengers:', updateErr);
-                return res.status(500).json({ message: '서버 오류 발생' });
-            }
-
-            return res.status(200).json({ message: '신청 성공', passengers: updatedPassengers });
-        });
     });
 });
 
