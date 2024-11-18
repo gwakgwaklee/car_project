@@ -138,22 +138,26 @@ app.post('/resendCode', (req, res) => {
             }
 
             // 이메일 전송
-            const mailOptions = {
-                from: process.env.REACT_APP_GMAIL_ADDRESS,
-                to: email,
-                subject: '새 인증 코드',
-                text: `새 인증 코드는 ${newCode}입니다. 10분 이내에 인증을 완료하세요.`,
-            };
-
-            const transporter = mailer();
-            transporter.sendMail(mailOptions, (error, info) => {
-                if (error) {
-                    console.error('Error sending email:', error);
+            mailer(
+                username,                          // 발신자 이름
+                email,                         // 수신자 이메일
+                '회원가입 인증 코드',           // 이메일 제목
+                `<p>안녕하세요, <b>${username}</b>님!</p>
+                    <p>회원가입을 완료하려면 아래 인증 코드를 입력해주세요.</p>
+                    <h3>인증 코드: <b>${verification_code}</b></h3>
+                    <p>이 코드는 10분 동안 유효합니다.</p>` // HTML 메시지 내용
+            )
+            .then((response) => {
+                if (response === 'success') {
+                    return res.status(201).json({ message: '회원가입 성공! 이메일로 인증 코드를 발송했습니다.' });
+                } else {
+                    console.error('Error sending email:', response);
                     return res.status(500).json({ message: '이메일 전송 중 오류가 발생했습니다.' });
                 }
-
-                console.log('Email sent successfully:', info.response);
-                res.status(200).json({ message: '새 인증 코드가 이메일로 전송되었습니다.' });
+            })
+            .catch((error) => {
+                console.error('Email Error:', error);
+                return res.status(500).json({ message: '이메일 전송 중 오류가 발생했습니다.' });
             });
         }
     );
