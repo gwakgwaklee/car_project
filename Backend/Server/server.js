@@ -1,6 +1,9 @@
 const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
+const nodemailer = require('nodemailer');
+const dayjs = require('dayjs');
+
 const app = express();
 const port = 3001; // 클라이언트와 일치하는 포트로 설정
 
@@ -10,6 +13,17 @@ app.use(cors({
     allowedHeaders: ['Content-Type']
 }));
 app.use(express.json()); // JSON 요청을 파싱
+
+
+
+// Nodemailer SMTP 설정
+const transporter = nodemailer.createTransport({
+    service: 'Gmail', // Gmail 사용 (다른 SMTP 서버도 가능)
+    auth: {
+        user: 'your-email@gmail.com', // 발신자 이메일
+        pass: 'your-email-password', // 발신자 이메일 비밀번호
+    },
+});
 
 // MySQL 연결 설정
 const db = mysql.createConnection({
@@ -47,19 +61,127 @@ app.post('/login', (req, res) => {
   );
 });
 
-// 회원가입 엔드포인트
-app.post('/signup', (req, res) => {
-    const { username, password, birthdate, name, hint, hintAnswer } = req.body;
+//인증코드 확인
+app.post('/verify', (req, res) => {
+    const { username, verificationCode } = req.body;
 
     db.query(
-        'INSERT INTO users (username, password, birthdate, name, hint, hint_answer) VALUES (?, ?, ?, ?, ?, ?)',
-        [username, password, birthdate, name, hint, hintAnswer],
+        'SELECT verification_code FROM users WHERE username = ?',
+        [username],
+        (err, results) => {
+            if (err) {
+                console.error('Error fetching verification code:', err);
+                return res.status(500).json({ message: '인증 코드 확인 중 오류가 발생했습니다.' });
+            }
+
+            if (results.length === 0) {
+                return res.status(404).json({ message: '해당 사용자를 찾을 수 없습니다.' });
+            }
+
+            const { verification_code, code_expiration } = results[0];
+            const currentTime = dayjs();
+
+            if (verification_code == verificationCode) {
+                if (currentTime.isBefore(dayjs(code_expiration))) {
+                    // 인증 성공
+                    db.query(
+                        'UPDATE users SET is_verified = 1 WHERE username = ?',
+                        [username],
+                        (updateErr) => {
+                            if (updateErr) {
+                                console.error('Error updating verification status:', updateErr);
+                                return res.status(500).json({ message: '인증 상태 업데이트 중 오류가 발생했습니다.' });
+                            }
+                            res.status(200).json({ message: '인증이 완료되었습니다!' });
+                        }
+                    );
+                } else {
+                    res.status(400).json({ message: '인증 코드가 만료되었습니다.' });
+                }
+            } else {
+                res.status(400).json({ message: '잘못된 인증 코드입니다.' });
+            }
+        }
+    );
+});
+
+//새 인증 코드 재전송
+app.post('/resendCode', (req, res) => {
+    const { username, email } = req.body;
+
+    // 새 인증 코드와 만료 시간 생성
+    const newCode = Math.floor(100000 + Math.random() * 900000);
+    const newExpiration = dayjs().add(10, 'minute').format('YYYY-MM-DD HH:mm:ss');
+
+    // 데이터베이스 업데이트
+    db.query(
+        'UPDATE users SET verification_code = ?, code_expiration = ? WHERE username = ? AND email = ?',
+        [newCode, newExpiration, username, email],
+        (err, result) => {
+            if (err) {
+                console.error('Error updating verification code:', err);
+                return res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+            }
+
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+            }
+
+            // 이메일 발송
+            const mailOptions = {
+                from: 'your-email@gmail.com',
+                to: email,
+                subject: '새 인증 코드',
+                text: `새 인증 코드는 ${newCode}입니다. 10분 이내에 인증을 완료하세요.`,
+            };
+
+            transporter.sendMail(mailOptions, (error, info) => {
+                if (error) {
+                    console.error('Error sending email:', error);
+                    return res.status(500).json({ message: '이메일 전송 중 오류가 발생했습니다.' });
+                }
+
+                res.status(200).json({ message: '새 인증 코드가 이메일로 전송되었습니다.' });
+            });
+        }
+    );
+});
+
+
+
+
+// 회원가입 엔드포인트
+app.post('/signup', (req, res) => {
+    const { username, password, birthdate, name, hint, hintAnswer, email } = req.body;
+    // 6자리 랜덤 인증 코드 생성
+    const verificationCode = Math.floor(100000 + Math.random() * 900000);
+    const expirationTime = dayjs().add(10, 'minutes').format('YYYY-MM-DD HH:mm:ss'); // 10분 뒤 만료
+
+
+    db.query(
+        'INSERT INTO users (username, password, birthdate, name, hint, hint_answer, email, verification_code, code_expiration) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [username, password, birthdate, name, hint, hintAnswer, email, verificationCode, expirationTime],
         (err, result) => {
             if (err) {
                 console.error('Error inserting user:', err);
-                return res.status(500).json({ message: 'Error creating user' });
+                return res.status(500).json({ message: '회원가입 중 오류가 발생했습니다.' });
             }
-            res.status(201).json({ message: 'User created successfully!' });
+
+            // 이메일 전송
+            const mailOptions = {
+                from: 'your-email@gmail.com', // 발신자 이메일
+                to: email, // 수신자 이메일
+                subject: '회원가입 인증 코드',
+                text: `안녕하세요, ${name}님! 인증 코드는 ${verificationCode}입니다.`,
+            };
+
+            transporter.sendMail(mailOptions, (error, info) => {
+                if (error) {
+                    console.error('Error sending email:', error);
+                    return res.status(500).json({ message: '이메일 전송 중 오류가 발생했습니다.' });
+                }
+                res.status(201).json({ message: '회원가입 성공! 이메일로 인증 코드를 발송했습니다.' });
+            });
         }
     );
 });
@@ -131,25 +253,6 @@ app.post('/carpool_all', (req, res) => {
     });
 });
 
-// 특정 room_id에 대한 carpool_etc 데이터 가져오기
-app.post('/carpool_etc', (req, res) => {
-    const { roomIds } = req.body; // 클라이언트에서 요청된 room_id 배열을 받음
-
-    if (!Array.isArray(roomIds) || roomIds.length === 0) {
-        return res.status(400).json({ message: 'roomIds 배열이 필요합니다.' });
-    }
-
-    // room_id 목록에 해당하는 carpool_etc 데이터 가져오기
-    const query = 'SELECT * FROM carpool_etc WHERE room_id IN (?)';
-    db.query(query, [roomIds], (err, results) => {
-        if (err) {
-            console.error('Error fetching carpool_etc data:', err);
-            return res.status(500).json({ message: 'carpool_etc 데이터 가져오는 중 오류가 발생했습니다.' });
-        }
-        res.json(results);
-    });
-});
-
 
 // 카풀 생성 엔드포인트
 app.post('/createCarpool', (req, res) => {
@@ -213,6 +316,26 @@ app.post('/changePassword', (req, res) => {
     });
 });
 
+// // 유저 ID를 사용하여 카풀 데이터를 가져오는 엔드포인트
+// app.get('/getCarpoolByUserId/:userid', (req, res) => {
+//     const { userid } = req.params; // URL 파라미터로 유저 ID를 받음
+
+//     const query = 'SELECT * FROM usrs WHERE username = ?'; // 예: driver 컬럼이 해당 유저 ID를 참조한다고 가정
+//     db.query(query, [userid], (err, results) => {
+//         if (err) {
+//             console.error('Error fetching carpool data:', err);
+//             return res.status(500).json({ message: '카풀 데이터를 가져오는 중 오류가 발생했습니다.' });
+//         }
+        
+//         if (results.length > 0) {
+//             return res.status(200).json(results);
+//         } else {
+//             return res.status(404).json({ message: '해당 유저의 카풀 데이터가 없습니다.' });
+//         }
+//     });
+// });
+
+
 app.get('/getUserId', (req, res) => {
     const { username } = req.query; // 클라이언트에서 username을 쿼리로 전달받음
 
@@ -229,7 +352,6 @@ app.get('/getUserId', (req, res) => {
         }
     });
 });
-
 // 기본 라우트
 app.get('/', (req, res) => {
     res.send('Hello World!');
