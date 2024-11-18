@@ -1,6 +1,8 @@
 const nodeMailer = require('nodemailer')
 
 module.exports = async (name, email, subject, message) => {
+  console.log('GMAIL ADDRESS:', process.env.REACT_APP_GMAIL_ADDRESS);
+  console.log('GMAIL PASSWORD:', process.env.REACT_APP_GMAIL_PASSWORD);
   const transporter = await nodeMailer.createTransport({
     service: 'gmail',
     host: 'smtp.gmail.com', // gmail server
