@@ -159,8 +159,8 @@ app.post('/signup', (req, res) => {
 
 
     db.query(
-        'INSERT INTO users (username, password, birthdate, name, hint, hint_answer, email, verification_code, code_expiration) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [username, password, birthdate, name, hint, hintAnswer, email, verificationCode, expirationTime],
+        'INSERT INTO users (username, email, verification_code, code_expiration, password, birthdate, name, hint, hint_answer) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [username, email, verificationCode, expirationTime, password, birthdate, name, hint, hintAnswer],
         (err, result) => {
             if (err) {
                 console.error('Error inserting user:', err);
