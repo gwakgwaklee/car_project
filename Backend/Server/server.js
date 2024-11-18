@@ -298,7 +298,24 @@ app.post('/carpool_all', (req, res) => {
         res.json(results);
     });
 });
+// 특정 room_id에 대한 carpool_etc 데이터 가져오기
+app.post('/carpool_etc', (req, res) => {
+    const { roomIds } = req.body; // 클라이언트에서 요청된 room_id 배열을 받음
 
+    if (!Array.isArray(roomIds) || roomIds.length === 0) {
+        return res.status(400).json({ message: 'roomIds 배열이 필요합니다.' });
+    }
+
+    // room_id 목록에 해당하는 carpool_etc 데이터 가져오기
+    const query = 'SELECT * FROM carpool_etc WHERE room_id IN (?)';
+    db.query(query, [roomIds], (err, results) => {
+        if (err) {
+            console.error('Error fetching carpool_etc data:', err);
+            return res.status(500).json({ message: 'carpool_etc 데이터 가져오는 중 오류가 발생했습니다.' });
+        }
+        res.json(results);
+    });
+});
 
 // 카풀 생성 엔드포인트
 app.post('/createCarpool', (req, res) => {
