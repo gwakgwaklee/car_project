@@ -71,7 +71,7 @@ app.post('/verify', (req, res) => {
     const { username, verificationCode } = req.body;
 
     db.query(
-        'SELECT verification_code FROM users WHERE username = ?',
+        'SELECT verification_code, code_expiration FROM users WHERE username = ?',
         [username],
         (err, results) => {
             if (err) {
@@ -86,7 +86,11 @@ app.post('/verify', (req, res) => {
             const { verification_code, code_expiration } = results[0];
             const currentTime = dayjs();
 
-            if (verification_code == verificationCode) {
+            console.log('Stored Code:', verification_code);
+            console.log('User Input Code:', verificationCode);
+            console.log('Code Expiration:', code_expiration);
+
+            if (parseInt(verificationCode) === parseInt(verification_code)) {
                 if (currentTime.isBefore(dayjs(code_expiration))) {
                     // 인증 성공
                     db.query(
