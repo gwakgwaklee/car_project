@@ -387,7 +387,7 @@ app.post('/createCarpool', (req, res) => {
     });
 });
 
-// 카풀 신청 부분
+// 카풀을 신청하는 부분
 app.post('/update_passengers', (req, res) => {
     const { id, roomId } = req.body;
 
@@ -396,8 +396,8 @@ app.post('/update_passengers', (req, res) => {
     }
 
     // roomId에 해당하는 카풀 데이터를 가져오기
-    const getCarpoolQuery = 'SELECT passengers FROM carpool WHERE room_id = ?';
-    db.query(getCarpoolQuery, [roomId], (err, results) => { // [roomId]로 수정
+    const getCarpoolQuery = 'SELECT passengers, max_passengers FROM carpool WHERE room_id = ?';
+    db.query(getCarpoolQuery, [roomId], (err, results) => {
         if (err) {
             console.error('Error fetching carpool data:', err);
             return res.status(500).json({ message: '서버 오류 발생' });
@@ -407,7 +407,8 @@ app.post('/update_passengers', (req, res) => {
             return res.status(404).json({ message: '카풀을 찾을 수 없습니다.' });
         }
 
-        let passengersRaw = results[0].passengers; // 불러온 원본 데이터
+        let passengersRaw = results[0].passengers; // 현재 탑승자 목록
+        const maxPassengers = parseInt(results[0].max_passengers, 10); // 운전자를 포함한 최대 인원 수
 
         // passengersRaw가 빈 값인 경우 처리
         if (!passengersRaw || passengersRaw === '[]') {
@@ -425,8 +426,13 @@ app.post('/update_passengers', (req, res) => {
         console.log('현재 passengers:', passengers);
 
         // 이미 신청된 사용자라면 에러 반환
-        if (passengers.includes(String(id))) { // id와 비교
+        if (passengers.includes(String(id))) {
             return res.status(400).json({ message: '이미 신청된 사용자입니다.' });
+        }
+
+        // 현재 탑승자가 max_passengers - 1에 도달했는지 확인
+        if (passengers.length >= maxPassengers - 1) {
+            return res.status(400).json({ message: '최대 인원수를 초과했습니다.' });
         }
 
         // 새로운 사용자를 추가하고 저장
