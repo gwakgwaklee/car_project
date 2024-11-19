@@ -362,6 +362,50 @@ app.post('/createCarpool', (req, res) => {
     });
 });
 
+// 카풀을 신청하는 부분
+app.post('/update_passengers', (req, res) => {
+    const { userId, roomId } = req.body;
+
+    if (!userId || !roomId) {
+        return res.status(400).json({ message: '필수 값이 누락되었습니다.' });
+    }
+
+    // roomId에 해당하는 카풀 데이터를 가져오기
+    const getCarpoolQuery = 'SELECT passengers FROM carpool WHERE room_id = ?';
+    db.query(getCarpoolQuery, [roomId], (err, results) => {
+        if (err) {
+            console.error('Error fetching carpool data:', err);
+            return res.status(500).json({ message: '서버 오류 발생' });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ message: '카풀을 찾을 수 없습니다.' });
+        }
+
+        let passengers = results[0].passengers ? results[0].passengers.split(',') : [];
+
+        // 이미 신청된 사용자라면 에러 반환
+        if (passengers.includes(userId)) {
+            return res.status(400).json({ message: '이미 신청된 사용자입니다.' });
+        }
+
+        // 새로운 사용자를 추가하고 저장
+        passengers.push(userId);
+        const updatedPassengers = passengers.join(',');
+
+        const updateQuery = 'UPDATE carpool SET passengers = ? WHERE room_id = ?';
+        db.query(updateQuery, [updatedPassengers, roomId], (updateErr) => {
+            if (updateErr) {
+                console.error('Error updating passengers:', updateErr);
+                return res.status(500).json({ message: '서버 오류 발생' });
+            }
+
+            return res.status(200).json({ message: '신청 성공', passengers: updatedPassengers });
+        });
+    });
+});
+
+
 // 회원 탈퇴 엔드포인트
 app.delete('/deleteUser', (req, res) => {
     const { userid } = req.body; // 클라이언트에서 전달받은 유저 ID
