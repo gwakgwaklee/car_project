@@ -363,16 +363,17 @@ app.post('/createCarpool', (req, res) => {
 });
 
 // 카풀을 신청하는 부분
+// 카풀을 신청하는 부분
 app.post('/update_passengers', (req, res) => {
-    const { userId, roomId } = req.body;
+    const { id, roomId } = req.body;
 
-    if (!userId || !roomId) {
+    if (!id || !roomId) {
         return res.status(400).json({ message: '필수 값이 누락되었습니다.' });
     }
 
     // roomId에 해당하는 카풀 데이터를 가져오기
     const getCarpoolQuery = 'SELECT passengers FROM carpool WHERE room_id = ?';
-    db.query(getCarpoolQuery, [roomId], (err, results) => {
+    db.query(getCarpoolQuery, [id], (err, results) => {
         if (err) {
             console.error('Error fetching carpool data:', err);
             return res.status(500).json({ message: '서버 오류 발생' });
@@ -382,17 +383,33 @@ app.post('/update_passengers', (req, res) => {
             return res.status(404).json({ message: '카풀을 찾을 수 없습니다.' });
         }
 
-        let passengers = results[0].passengers ? results[0].passengers.split(',') : [];
+        let passengersRaw = results[0].passengers; // 불러온 원본 데이터
+
+        // passengersRaw가 빈 값인 경우 처리
+        if (!passengersRaw || passengersRaw === '[]') {
+            passengersRaw = ''; // 초기화
+        } else {
+            passengersRaw = passengersRaw.replace(/[\[\]]/g, ''); // 배열 형식의 대괄호 제거
+        }
+
+        // 쉼표로 구분된 문자열을 배열로 변환
+        let passengers = passengersRaw ? passengersRaw.split(',') : [];
+
+        // 데이터가 숫자 형태라면 문자열로 변환
+        passengers = passengers.map((id) => String(id));
+
+        console.log('현재 passengers:', passengers);
 
         // 이미 신청된 사용자라면 에러 반환
-        if (passengers.includes(userId)) {
+        if (passengers.includes(String(userId))) {
             return res.status(400).json({ message: '이미 신청된 사용자입니다.' });
         }
 
         // 새로운 사용자를 추가하고 저장
-        passengers.push(userId);
+        passengers.push(String(id));
         const updatedPassengers = passengers.join(',');
 
+        // passengers 업데이트
         const updateQuery = 'UPDATE carpool SET passengers = ? WHERE room_id = ?';
         db.query(updateQuery, [updatedPassengers, roomId], (updateErr) => {
             if (updateErr) {
@@ -404,6 +421,7 @@ app.post('/update_passengers', (req, res) => {
         });
     });
 });
+
 
 
 // 회원 탈퇴 엔드포인트
