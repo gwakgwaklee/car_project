@@ -362,8 +362,7 @@ app.post('/createCarpool', (req, res) => {
     });
 });
 
-// 카풀을 신청하는 부분
-// 카풀을 신청하는 부분
+// 카풀 신청 부분
 app.post('/update_passengers', (req, res) => {
     const { id, roomId } = req.body;
 
@@ -373,7 +372,7 @@ app.post('/update_passengers', (req, res) => {
 
     // roomId에 해당하는 카풀 데이터를 가져오기
     const getCarpoolQuery = 'SELECT passengers FROM carpool WHERE room_id = ?';
-    db.query(getCarpoolQuery, [id], (err, results) => {
+    db.query(getCarpoolQuery, [roomId], (err, results) => { // [roomId]로 수정
         if (err) {
             console.error('Error fetching carpool data:', err);
             return res.status(500).json({ message: '서버 오류 발생' });
@@ -396,12 +395,12 @@ app.post('/update_passengers', (req, res) => {
         let passengers = passengersRaw ? passengersRaw.split(',') : [];
 
         // 데이터가 숫자 형태라면 문자열로 변환
-        passengers = passengers.map((id) => String(id));
+        passengers = passengers.map((userId) => String(userId));
 
         console.log('현재 passengers:', passengers);
 
         // 이미 신청된 사용자라면 에러 반환
-        if (passengers.includes(String(userId))) {
+        if (passengers.includes(String(id))) { // id와 비교
             return res.status(400).json({ message: '이미 신청된 사용자입니다.' });
         }
 
@@ -421,6 +420,7 @@ app.post('/update_passengers', (req, res) => {
         });
     });
 });
+
 
 
 
