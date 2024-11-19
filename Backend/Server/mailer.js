@@ -16,7 +16,7 @@ module.exports = async (name, email, subject, message) => {
 
   const mailOption = {
     from: name,
-    to: process.env.REACT_APP_GMAIL_ADDRESS,
+    to: email,
     subject: subject,
     html: 
       `You got a message from <br /> 
