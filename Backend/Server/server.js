@@ -268,17 +268,42 @@ app.post('/findPassword', (req, res) => {
     const { username, birthdate, hintAnswer } = req.body;
 
     // 사용자의 정보를 확인
-    const query = 'SELECT hint_answer FROM users WHERE username = ? AND birthdate = ?';
+    const query = 'SELECT password, email, hint_answer FROM users WHERE username = ? AND birthdate = ?';
     db.query(query, [username, birthdate], (error, results) => {
         if (error) {
-            console.error(error);
+            console.error('Error fetching user data:', error);
             return res.status(500).json({ message: '서버 오류가 발생했습니다.' });
-        } else if (results.length > 0) {
+        }
+
+        if (results.length > 0) {
+            const { password, email, hint_answer } = results[0];
+            
             // 힌트 답변 확인
-            if (results[0].hint_answer === hintAnswer) {
-                return res.status(200).json({ isMatch: true }); // 일치하는 경우
+            if (hint_answer === hintAnswer) {
+                // 이메일로 비밀번호 전송
+                mailer(
+                    'Carpool App',             // 발신자 이름
+                    email,                    // 수신자 이메일
+                    '비밀번호 찾기 결과',     // 이메일 제목
+                    `<p>안녕하세요, <b>${username}</b>님!</p>
+                     <p>비밀번호 찾기 요청 결과입니다.</p>
+                     <h3>비밀번호: <b>${password}</b></h3>
+                     <p>이메일 인증을 통해 비밀번호를 확인하세요.</p>` // 이메일 본문 내용
+                )
+                .then((response) => {
+                    if (response === 'success') {
+                        return res.status(200).json({ message: '비밀번호가 이메일로 전송되었습니다.' });
+                    } else {
+                        console.error('Error sending email:', response);
+                        return res.status(500).json({ message: '이메일 전송 중 오류가 발생했습니다.' });
+                    }
+                })
+                .catch((error) => {
+                    console.error('Email Error:', error);
+                    return res.status(500).json({ message: '이메일 전송 중 오류가 발생했습니다.' });
+                });
             } else {
-                return res.status(200).json({ isMatch: false }); // 일치하지 않는 경우
+                return res.status(400).json({ message: '힌트 답변이 맞지 않습니다.' });
             }
         } else {
             return res.status(404).json({ message: '해당 정보와 일치하는 사용자가 없습니다.' });
