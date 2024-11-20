@@ -452,46 +452,45 @@ app.post('/update_passengers', (req, res) => {
     });
 });
 
-// 예약 정보를 가져오는 api 
+// 예약 정보를 가져오는 api
 app.get('/getPassengers', async (req, res) => {
-    const { id } = req.query;
+  const { id } = req.query;
 
-    if (!id) {
-        return res.status(400).json({ message: '유효하지 않은 요청입니다. id가 필요합니다.' });
+  if (!id) {
+    return res.status(400).json({ message: '유효하지 않은 요청입니다. id가 필요합니다.' });
+  }
+
+  try {
+    const query = `
+      SELECT 
+          c.room_id,
+          c.start_region,
+          c.end_region,
+          c.start_time,
+          ce.details
+      FROM 
+          carpool c
+      JOIN 
+          carpool_etc ce 
+      ON 
+          c.room_id = ce.room_id
+      WHERE 
+          FIND_IN_SET(?, c.passengers) > 0;
+    `;
+
+    const [rows] = await db.execute(query, [id]); // 배열 형태로 반환
+    console.log('쿼리 결과:', rows);
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ message: '예약 내역이 없습니다.' });
     }
 
-    try {
-        // SQL 쿼리 실행
-        const query = `
-        SELECT 
-            c.room_id,
-            c.start_region,
-            c.end_region,
-            c.start_time,
-            ce.details
-        FROM 
-            carpool c
-        JOIN 
-            carpool_etc ce 
-        ON 
-            c.room_id = ce.room_id
-        WHERE 
-            FIND_IN_SET(?, c.passengers) > 0;
-      `;
-
-        const [rows] = await db.execute(query, [id]);
-
-        if (rows.length === 0) {
-            return res.status(404).json({ message: '예약 내역이 없습니다.' });
-        }
-
-        res.json({ reservations: rows });
-    } catch (error) {
-        console.error('데이터 조회 중 오류 발생:', error);
-        res.status(500).json({ message: '서버 오류가 발생했습니다.', error: error.message });
-    }
+    res.json({ reservations: rows });
+  } catch (error) {
+    console.error('데이터 조회 중 오류 발생:', error.message);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.', error: error.message });
+  }
 });
-
 
 
 // 회원 탈퇴 엔드포인트
