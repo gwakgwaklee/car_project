@@ -532,20 +532,25 @@ app.post('/changePassword', (req, res) => {
 
 app.get('/getUserId', (req, res) => {
     const { username } = req.query; // 클라이언트에서 username을 쿼리로 전달받음
+    console.log('요청된 username:', username); // 요청된 username 콘솔 출력
 
     const query = 'SELECT id FROM users WHERE username = ?';
     db.query(query, [username], (err, results) => {
         if (err) {
-            console.error('Error fetching user ID:', err);
+            console.error('Error fetching user ID:', err); // 오류 로그 출력
             return res.status(500).json({ message: '서버 오류가 발생했습니다.' });
         }
+
         if (results.length > 0) {
+            console.log('조회된 결과:', results); // DB에서 조회된 결과 로그
             return res.status(200).json({ id: results[0].id });
         } else {
+            console.log('해당 유저를 찾을 수 없습니다:', username); // 유저가 없을 때 로그 출력
             return res.status(404).json({ message: '해당 유저를 찾을 수 없습니다.' });
         }
     });
 });
+
 // 기본 라우트
 app.get('/', (req, res) => {
     res.send('Hello World!');
