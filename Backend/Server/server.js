@@ -462,7 +462,7 @@ app.get('/getPassengers', (req, res) => {
         FROM carpool_passengers cp
         JOIN carpool c ON cp.room_id = c.room_id
         LEFT JOIN carpool_etc ce ON c.room_id = ce.room_id
-        WHERE cp.passenger_id = ?
+        WHERE cp.passengers = ?
     `;
 
     db.query(query, [id], (err, results) => {
