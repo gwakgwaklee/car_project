@@ -452,46 +452,32 @@ app.post('/update_passengers', (req, res) => {
     });
 });
 
-// 예약 정보를 가져오는 api
-app.get('/getPassengers', async (req, res) => {
-  const { id } = req.query;
+// 특정 사용자가 참여한 카풀 예약 목록 가져오기
+app.get('/getPassengers', (req, res) => {
+    const { id } = req.query; // 클라이언트에서 전달받은 사용자 ID
 
-  if (!id) {
-    return res.status(400).json({ message: '유효하지 않은 요청입니다. id가 필요합니다.' });
-  }
-
-  try {
+    // carpool_passengers와 carpool 테이블을 조인하여 예약 정보를 가져옴
     const query = `
-      SELECT 
-          c.room_id,
-          c.start_region,
-          c.end_region,
-          c.start_time,
-          ce.details
-      FROM 
-          carpool c
-      JOIN 
-          carpool_etc ce 
-      ON 
-          c.room_id = ce.room_id
-      WHERE 
-          FIND_IN_SET(?, c.passengers) > 0;
+        SELECT c.room_id, c.start_region, c.end_region, c.start_time, ce.details
+        FROM carpool_passengers cp
+        JOIN carpool c ON cp.room_id = c.room_id
+        LEFT JOIN carpool_etc ce ON c.room_id = ce.room_id
+        WHERE cp.passenger_id = ?
     `;
 
-    const [rows] = await db.execute(query, [id]); // 배열 형태로 반환
-    console.log('쿼리 결과:', rows);
+    db.query(query, [id], (err, results) => {
+        if (err) {
+            console.error('Error fetching passenger reservations:', err);
+            return res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+        }
 
-    if (!rows || rows.length === 0) {
-      return res.status(404).json({ message: '예약 내역이 없습니다.' });
-    }
-
-    res.json({ reservations: rows });
-  } catch (error) {
-    console.error('데이터 조회 중 오류 발생:', error.message);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.', error: error.message });
-  }
+        if (results.length > 0) {
+            res.status(200).json({ reservations: results });
+        } else {
+            res.status(404).json({ message: '예약 내역이 없습니다.' });
+        }
+    });
 });
-
 
 // 회원 탈퇴 엔드포인트
 app.delete('/deleteUser', (req, res) => {
