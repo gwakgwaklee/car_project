@@ -452,6 +452,42 @@ app.post('/update_passengers', (req, res) => {
     });
 });
 
+// 예약 정보를 가져오는 api 
+app.get('/getPassengers', async (req, res) => {
+    const { id } = req.query;
+  
+    if (!id) {
+      return res.status(400).json({ message: '유효하지 않은 요청입니다. id가 필요합니다.' });
+    }
+  
+    try {
+      // passengers 테이블에서 해당 ID 확인
+      const passengerQuery = `SELECT * FROM passengers WHERE user_id = ?`;
+      const [passengerRows] = await db.execute(passengerQuery, [id]);
+  
+      if (passengerRows.length === 0) {
+        return res.status(404).json({ message: '예약 내역이 없습니다.' });
+      }
+  
+      // carpool, carpool_etc에서 데이터 가져오기
+      const carpoolQuery = `
+        SELECT 
+          c.start_region, 
+          c.end_region, 
+          c.start_time,
+          ce.etc_detail
+        FROM carpool c
+        JOIN carpool_etc ce ON c.carpool_id = ce.carpool_id
+        WHERE c.passenger_id = ?
+      `;
+      const [carpoolRows] = await db.execute(carpoolQuery, [id]);
+  
+      res.json({ reservations: carpoolRows });
+    } catch (error) {
+      console.error('데이터 조회 중 오류 발생:', error);
+      res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    }
+  });
 
 
 
