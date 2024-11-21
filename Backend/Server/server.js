@@ -239,9 +239,11 @@ app.post('/signup', (req, res) => {
             // user_vehicle 테이블에 기본 차량 정보 추가
             const insertVehicleQuery = `
                 INSERT INTO user_vehicle (owner_id, vehicle_number, vehicle_type)
-                VALUES (?, NULL, NULL)
+                VALUES (?, ?, ?)
             `;
-            db.query(insertVehicleQuery, [userId], (err) => {
+            const vehicleParams = [userId, vehicle_number || '', vehicle_type || ''];
+
+            db.query(insertVehicleQuery, vehicleParams, (err) => {
                 if (err) {
                     console.error('Error inserting vehicle info:', err);
                     return res.status(500).json({ message: '차량 정보 추가 중 오류가 발생했습니다.' });
