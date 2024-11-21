@@ -404,59 +404,56 @@ app.post('/update_passengers', (req, res) => {
         return res.status(400).json({ message: '필수 값이 누락되었습니다.' });
     }
 
-    // roomId에 해당하는 카풀 데이터를 가져오기
-    const getCarpoolQuery = 'SELECT passengers, max_passengers FROM carpool WHERE room_id = ?';
-    db.query(getCarpoolQuery, [roomId], (err, results) => {
+    // 1. 해당 room의 현재 상태를 확인
+    const checkCarpoolQuery = 'SELECT current_passengers, max_passengers FROM carpool WHERE room_id = ?';
+    db.query(checkCarpoolQuery, [roomId], (err, carpoolResults) => {
         if (err) {
             console.error('Error fetching carpool data:', err);
             return res.status(500).json({ message: '서버 오류 발생' });
         }
 
-        if (results.length === 0) {
-            return res.status(404).json({ message: '카풀을 찾을 수 없습니다.' });
+        if (carpoolResults.length === 0) {
+            return res.status(404).json({ message: '해당 카풀 방이 존재하지 않습니다.' });
         }
 
-        let passengersRaw = results[0].passengers; // 현재 탑승자 목록
-        const maxPassengers = parseInt(results[0].max_passengers, 10); // 운전자를 포함한 최대 인원 수
+        const { current_passengers, max_passengers } = carpoolResults[0];
 
-        // passengersRaw가 빈 값인 경우 처리
-        if (!passengersRaw || passengersRaw === '[]') {
-            passengersRaw = ''; // 초기화
-        } else {
-            passengersRaw = passengersRaw.replace(/[\[\]]/g, ''); // 배열 형식의 대괄호 제거
+        // 2. 최대 인원을 초과하는지 확인
+        if (current_passengers >= max_passengers - 1) {
+            return res.status(400).json({ message: '최대 인원을 초과하였습니다.' });
         }
 
-        // 쉼표로 구분된 문자열을 배열로 변환
-        let passengers = passengersRaw ? passengersRaw.split(',') : [];
-
-        // 데이터가 숫자 형태라면 문자열로 변환
-        passengers = passengers.map((userId) => String(userId));
-
-        console.log('현재 passengers:', passengers);
-
-        // 이미 신청된 사용자라면 에러 반환
-        if (passengers.includes(String(id))) {
-            return res.status(400).json({ message: '이미 신청된 사용자입니다.' });
-        }
-
-        // 현재 탑승자가 max_passengers - 1에 도달했는지 확인
-        if (passengers.length >= maxPassengers - 1) {
-            return res.status(400).json({ message: '최대 인원수를 초과했습니다.' });
-        }
-
-        // 새로운 사용자를 추가하고 저장
-        passengers.push(String(id));
-        const updatedPassengers = passengers.join(',');
-
-        // passengers 업데이트
-        const updateQuery = 'UPDATE carpool SET passengers = ? WHERE room_id = ?';
-        db.query(updateQuery, [updatedPassengers, roomId], (updateErr) => {
-            if (updateErr) {
-                console.error('Error updating passengers:', updateErr);
+        // 3. 이미 신청한 사용자인지 확인
+        const checkPassengerQuery = 'SELECT * FROM carpool_passengers WHERE room_id = ? AND passenger_id = ?';
+        db.query(checkPassengerQuery, [roomId, id], (err, passengerResults) => {
+            if (err) {
+                console.error('Error checking passenger:', err);
                 return res.status(500).json({ message: '서버 오류 발생' });
             }
 
-            return res.status(200).json({ message: '신청 성공', passengers: updatedPassengers });
+            if (passengerResults.length > 0) {
+                return res.status(400).json({ message: '이미 신청한 사용자입니다.' });
+            }
+
+            // 4. carpool_passengers 테이블에 추가
+            const insertPassengerQuery = 'INSERT INTO carpool_passengers (room_id, passenger_id, joined_at) VALUES (?, ?, NOW())';
+            db.query(insertPassengerQuery, [roomId, id], (err) => {
+                if (err) {
+                    console.error('Error inserting passenger:', err);
+                    return res.status(500).json({ message: '서버 오류 발생' });
+                }
+
+                // 5. carpool 테이블의 current_passengers 업데이트
+                const updateCarpoolQuery = 'UPDATE carpool SET current_passengers = current_passengers + 1 WHERE room_id = ?';
+                db.query(updateCarpoolQuery, [roomId], (err) => {
+                    if (err) {
+                        console.error('Error updating current passengers:', err);
+                        return res.status(500).json({ message: '서버 오류 발생' });
+                    }
+
+                    return res.status(200).json({ message: '카풀 신청이 완료되었습니다.' });
+                });
+            });
         });
     });
 });
