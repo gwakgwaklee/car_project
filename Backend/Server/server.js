@@ -206,6 +206,8 @@ app.post('/signup', (req, res) => {
     // 6자리 랜덤 인증 코드 생성
     const verification_code = Math.floor(100000 + Math.random() * 900000);
     const code_expiration = dayjs().add(10, 'minutes').format('YYYY-MM-DD HH:mm:ss'); // 10분 뒤 만료
+    const created_at = dayjs().format('YYYY-MM-DD HH:mm:ss'); // 생성 시간
+
     console.log('Generated Code:', verification_code);
     console.log("Environment Variables:", process.env);
     console.log('GMAIL ADDRESS:', process.env.REACT_APP_GMAIL_ADDRESS);
@@ -220,30 +222,56 @@ app.post('/signup', (req, res) => {
                 return res.status(500).json({ message: '회원가입 중 오류가 발생했습니다.' });
             }
 
-            // 이메일 전송
-            mailer(
-                username,                          // 발신자 이름
-                email,                         // 수신자 이메일
-                '회원가입 인증 코드',           // 이메일 제목
-                `<p>안녕하세요, <b>${username}</b>님!</p>
-                 <p>회원가입을 완료하려면 아래 인증 코드를 입력해주세요.</p>
-                 <h3>인증 코드: <b>${verification_code}</b></h3>
-                 <p>이 코드는 10분 동안 유효합니다.</p>` // HTML 메시지 내용
-            )
-            .then((response) => {
-                if (response === 'success') {
-                    return res.status(201).json({ message: '회원가입 성공! 이메일로 인증 코드를 발송했습니다.' });
-                } else {
-                    console.error('Error sending email:', response);
-                    return res.status(500).json({ message: '이메일 전송 중 오류가 발생했습니다.' });
+            const userId = result.insertId; // 생성된 사용자 ID
+            // roles 테이블에 기본 권한 추가
+            const insertRoleQuery = `
+            INSERT INTO roles (id, permission, assigned_at)
+            VALUES (?, '1', ?)
+            `;
+            const roleParams = [userId, created_at];
+
+            db.query(insertRoleQuery, roleParams, (err) => {
+            if (err) {
+                console.error('Error inserting role:', err);
+                return res.status(500).json({ message: '회원 권한 설정 중 오류가 발생했습니다.' });
+            }
+
+            // user_vehicle 테이블에 기본 차량 정보 추가
+            const insertVehicleQuery = `
+                INSERT INTO user_vehicle (owner_id, vehicle_number, vehicle_type)
+                VALUES (?, NULL, NULL)
+            `;
+            db.query(insertVehicleQuery, [userId], (err) => {
+                if (err) {
+                    console.error('Error inserting vehicle info:', err);
+                    return res.status(500).json({ message: '차량 정보 추가 중 오류가 발생했습니다.' });
                 }
-            })
-            .catch((error) => {
-                console.error('Email Error:', error);
-                return res.status(500).json({ message: '이메일 전송 중 오류가 발생했습니다.' });
+
+                // 이메일 전송
+                mailer(
+                    username,                          // 발신자 이름
+                    email,                         // 수신자 이메일
+                    '회원가입 인증 코드',           // 이메일 제목
+                    `<p>안녕하세요, <b>${username}</b>님!</p>
+                    <p>회원가입을 완료하려면 아래 인증 코드를 입력해주세요.</p>
+                    <h3>인증 코드: <b>${verification_code}</b></h3>
+                    <p>이 코드는 10분 동안 유효합니다.</p>` // HTML 메시지 내용
+                )
+                .then((response) => {
+                    if (response === 'success') {
+                        return res.status(201).json({ message: '회원가입 성공! 이메일로 인증 코드를 발송했습니다.' });
+                    } else {
+                        console.error('Error sending email:', response);
+                        return res.status(500).json({ message: '이메일 전송 중 오류가 발생했습니다.' });
+                    }
+                })
+                .catch((error) => {
+                    console.error('Email Error:', error);
+                    return res.status(500).json({ message: '이메일 전송 중 오류가 발생했습니다.' });
+                });
             });
-        }
-    );
+        });
+    });
 });
 
 // 아이디 찾기
