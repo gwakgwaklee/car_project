@@ -331,12 +331,21 @@ app.post('/getHint', (req, res) => {
 
 // 카풀 데이터 불러오기
 app.post('/carpool_all', (req, res) => {
-    const query = 'SELECT * FROM carpool';
+    const query = `
+        SELECT 
+            c.room_id, c.driver, c.max_passengers, c.current_passengers,
+            c.start_time, c.created_at, c.start_region, c.end_region
+        FROM carpool c
+    `;
     db.query(query, (err, results) => {
-        if (err) throw err;
+        if (err) {
+            console.error('Error fetching carpool data:', err);
+            return res.status(500).json({ message: '서버 오류 발생' });
+        }
         res.json(results);
     });
 });
+
 // 특정 room_id에 대한 carpool_etc 데이터 가져오기
 app.post('/carpool_etc', (req, res) => {
     const { roomIds } = req.body; // 클라이언트에서 요청된 room_id 배열을 받음
