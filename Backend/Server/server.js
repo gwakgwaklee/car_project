@@ -241,7 +241,7 @@ app.post('/signup', (req, res) => {
                 INSERT INTO user_vehicle (owner_id, vehicle_number, vehicle_type)
                 VALUES (?, ?, ?)
             `;
-            const vehicleParams = [userId, vehicle_number || '', vehicle_type || ''];
+            const vehicleParams = [userId, '', ''];
 
             db.query(insertVehicleQuery, vehicleParams, (err) => {
                 if (err) {
