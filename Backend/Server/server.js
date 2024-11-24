@@ -494,11 +494,16 @@ app.get('/getPassengers', (req, res) => {
 
     // carpool_passengers와 carpool 테이블을 조인하여 예약 정보를 가져옴
     const query = `
-        SELECT c.room_id, c.start_region, c.end_region, c.start_time, ce.details
+        SELECT 
+            c.room_id, 
+            c.start_region, 
+            c.end_region, 
+            c.start_time, 
+            ce.details
         FROM carpool_passengers cp
         JOIN carpool c ON cp.room_id = c.room_id
         LEFT JOIN carpool_etc ce ON c.room_id = ce.room_id
-        WHERE cp.passengers = ?
+        WHERE cp.passenger_id = ? -- passengers 대신 passenger_id로 수정
     `;
 
     db.query(query, [id], (err, results) => {
