@@ -592,6 +592,31 @@ app.get('/getUserId', (req, res) => {
     });
 });
 
+app.post("/cancelReservation", (req, res) => {
+  const { id, roomId } = req.body;
+
+  const deletePassengerQuery =
+    "DELETE FROM carpool_passengers WHERE passenger_id = ? AND room_id = ?";
+  db.query(deletePassengerQuery, [id, roomId], (err) => {
+    if (err) {
+      console.error("Error deleting passenger:", err);
+      return res.status(500).json({ message: "카풀 취소 중 오류 발생" });
+    }
+
+    const updateCarpoolQuery =
+      "UPDATE carpool SET current_passengers = current_passengers - 1 WHERE room_id = ?";
+    db.query(updateCarpoolQuery, [roomId], (err) => {
+      if (err) {
+        console.error("Error updating carpool:", err);
+        return res.status(500).json({ message: "카풀 업데이트 중 오류 발생" });
+      }
+
+      res.status(200).json({ message: "카풀이 성공적으로 취소되었습니다." });
+    });
+  });
+});
+
+
 // 기본 라우트
 app.get('/', (req, res) => {
     res.send('Hello World!');
