@@ -427,7 +427,7 @@ app.post('/createCarpool', (req, res) => {
             return res.status(500).json({ message: '서버 오류가 발생했습니다.' });
         }
 
-        if (results.length === 0 || (results[0].permission !== '2' && results[0].permission !== '3')) {
+        if (results.length === 0 || (results[0].permission !== '운전자' && results[0].permission !== '어드민')) {
             return res.status(403).json({ message: '카풀 모집 권한이 없습니다.' });
         }
 
@@ -456,6 +456,7 @@ app.post('/createCarpool', (req, res) => {
         });
     });
 });
+
 
 
 // 카풀을 신청하는 부분
