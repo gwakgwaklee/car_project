@@ -415,34 +415,48 @@ app.post('/carpool_etc', (req, res) => {
 
 // 카풀 생성 엔드포인트
 app.post('/createCarpool', (req, res) => {
-    const { room_id, driver, max_passengers, date, start_time, created_at, start_region, end_region,  details } = req.body;
+    const { room_id, driver, max_passengers, date, start_time, created_at, start_region, end_region, details } = req.body;
 
     console.log('Received POST request for /createCarpool');
-    // carpool 테이블에 데이터 삽입
-    const insertCarpoolQuery = 'INSERT INTO carpool (room_id, driver, max_passengers, date, start_time, created_at, start_region, end_region) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
-    const carpoolParams = [room_id, driver, max_passengers, date, start_time, created_at, start_region, end_region];
 
-    db.query(insertCarpoolQuery, carpoolParams, (err, result) => {
+    // Step 1: Driver의 permission 확인
+    const checkPermissionQuery = 'SELECT permission FROM roles WHERE id = ?';
+    db.query(checkPermissionQuery, [driver], (err, results) => {
         if (err) {
-            console.log('err=', err)
-            console.error('Error inserting into carpool:', err);
-            return res.status(500).json({ message: '카풀 생성 중 오류가 발생했습니다.' });
+            console.error('Error checking driver permission:', err);
+            return res.status(500).json({ message: '서버 오류가 발생했습니다.' });
         }
 
-        // carpool_ect 테이블에 데이터 삽입
-        const insertCarpoolEctQuery = 'INSERT INTO carpool_etc (room_id, details) VALUES (?, ?)';
-        const carpoolEctParams = [room_id, details];
+        if (results.length === 0 || (results[0].permission !== 2 && results[0].permission !== 3)) {
+            return res.status(403).json({ message: '카풀 모집 권한이 없습니다.' });
+        }
 
-        db.query(insertCarpoolEctQuery, carpoolEctParams, (err, result) => {
+        // Step 2: 카풀 생성 진행
+        const insertCarpoolQuery = 'INSERT INTO carpool (room_id, driver, max_passengers, date, start_time, created_at, start_region, end_region) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
+        const carpoolParams = [room_id, driver, max_passengers, date, start_time, created_at, start_region, end_region];
+
+        db.query(insertCarpoolQuery, carpoolParams, (err) => {
             if (err) {
-                console.error('Error inserting into carpool_etc:', err);
-                return res.status(500).json({ message: '카풀 세부사항 저장 중 오류가 발생했습니다.' });
+                console.error('Error inserting into carpool:', err);
+                return res.status(500).json({ message: '카풀 생성 중 오류가 발생했습니다.' });
             }
 
-            res.status(201).json({ message: '카풀이 성공적으로 생성되었습니다!' });
+            // Step 3: carpool_etc 테이블에 데이터 삽입
+            const insertCarpoolEctQuery = 'INSERT INTO carpool_etc (room_id, details) VALUES (?, ?)';
+            const carpoolEctParams = [room_id, details];
+
+            db.query(insertCarpoolEctQuery, carpoolEctParams, (err) => {
+                if (err) {
+                    console.error('Error inserting into carpool_etc:', err);
+                    return res.status(500).json({ message: '카풀 세부사항 저장 중 오류가 발생했습니다.' });
+                }
+
+                res.status(201).json({ message: '카풀이 성공적으로 생성되었습니다!' });
+            });
         });
     });
 });
+
 
 // 카풀을 신청하는 부분
 app.post('/update_passengers', (req, res) => {
