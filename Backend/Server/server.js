@@ -226,30 +226,30 @@ app.post('/signup', (req, res) => {
 
             const userId = result.insertId; // 생성된 사용자 ID
             // roles 테이블에 기본 권한 추가
-            const insertRoleQuery = `
-            INSERT INTO roles (id, permission, assigned_at)
-            VALUES (?, '1', ?)
-            `;
-            const roleParams = [userId, created_at];
+            // const insertRoleQuery = `
+            // INSERT INTO roles (id, permission, assigned_at)
+            // VALUES (?, '1', ?)
+            // `;
+            // const roleParams = [userId, created_at];
 
-            db.query(insertRoleQuery, roleParams, (err) => {
-            if (err) {
-                console.error('Error inserting role:', err);
-                return res.status(500).json({ message: '회원 권한 설정 중 오류가 발생했습니다.' });
-            }
+            // db.query(insertRoleQuery, roleParams, (err) => {
+            // if (err) {
+            //     console.error('Error inserting role:', err);
+            //     return res.status(500).json({ message: '회원 권한 설정 중 오류가 발생했습니다.' });
+            // }
 
-            // user_vehicle 테이블에 기본 차량 정보 추가
-            const insertVehicleQuery = `
-                INSERT INTO user_vehicle (owner_id, vehicle_number, vehicle_type)
-                VALUES (?, ?, ?)
-            `;
-            const vehicleParams = [userId, '', ''];
+            // // user_vehicle 테이블에 기본 차량 정보 추가
+            // const insertVehicleQuery = `
+            //     INSERT INTO user_vehicle (owner_id, vehicle_number, vehicle_type)
+            //     VALUES (?, ?, ?)
+            // `;
+            // const vehicleParams = [userId, '', ''];
 
-            db.query(insertVehicleQuery, vehicleParams, (err) => {
-                if (err) {
-                    console.error('Error inserting vehicle info:', err);
-                    return res.status(500).json({ message: '차량 정보 추가 중 오류가 발생했습니다.' });
-                }
+            // db.query(insertVehicleQuery, vehicleParams, (err) => {
+            //     if (err) {
+            //         console.error('Error inserting vehicle info:', err);
+            //         return res.status(500).json({ message: '차량 정보 추가 중 오류가 발생했습니다.' });
+            //     }
 
                 // 이메일 전송
                 mailer(
