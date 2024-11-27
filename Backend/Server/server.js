@@ -213,9 +213,11 @@ app.post('/signup', (req, res) => {
     console.log('GMAIL ADDRESS:', process.env.REACT_APP_GMAIL_ADDRESS);
     console.log('GMAIL PASSWORD:', process.env.REACT_APP_GMAIL_PASSWORD);
 
+    // users 테이블에 데이터 삽입
     db.query(
-        'INSERT INTO users (username, email, verification_code, code_expiration, password, birthdate, name, hint, hint_answer) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [username, email, verification_code, code_expiration, password, birthdate, name, hint, hintAnswer],
+        `INSERT INTO users (username, email, phone, verification_code, code_expiration, password, birthdate, name, hint, hint_answer)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [username, email, phone, verification_code, code_expiration, password, birthdate, name, hint, hintAnswer],
         (err, result) => {
             if (err) {
                 console.error('Error inserting user:', err);
