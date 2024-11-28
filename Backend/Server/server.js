@@ -272,17 +272,18 @@ app.post('/signup', (req, res) => {
                                 commitTransaction();
                             }
                         );
-                    } else {
+                    } 
+                    else {
                         commitTransaction();
                     }
 
                     function commitTransaction() {
                         connection.commit((err) => {
                             if (err) {
+                                console.error('Commit Error:', err); // 에러 로그 출력
                                 return connection.rollback(() => {
                                     connection.release();
-                                    console.error('Commit Error:', err);
-                                    res.status(500).json({ message: '커밋 중 오류 발생' });
+                                    res.status(500).json({ message: '커밋 중 오류 발생', error: err.message });
                                 });
                             }
 
@@ -295,6 +296,7 @@ app.post('/signup', (req, res) => {
         });
     });
 });
+
 
 // 아이디 찾기
 app.post('/findID', (req, res) => {
