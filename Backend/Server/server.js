@@ -1,7 +1,7 @@
 // const path = require('path');
 // require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 const express = require('express');
-const mysql = require('mysql2');
+const mysql = require('mysql2/promise'); // promise 기반 모듈 사용
 const cors = require('cors');
 const dayjs = require('dayjs');
 
@@ -19,12 +19,15 @@ app.use(express.json()); // JSON 요청을 파싱
 
 
 // MySQL 연결 설정
-const db = mysql.createConnection({
+const db = mysql.createPool({
     host: 'svc.sel4.cloudtype.app', // 호스트 주소
     user: 'root',                   // 사용자 이름
-    password: '1234',      // 데이터베이스 비밀번호
+    password: '1234',               // 데이터베이스 비밀번호
     database: 'CarFull',            // 사용할 데이터베이스 이름
-    port: 30240                     // 포트 번호
+    port: 30240,                    // 포트 번호
+    waitForConnections: true,       // 연결 대기 활성화
+    connectionLimit: 10,            // 최대 연결 수
+    queueLimit: 0                   // 대기열 제한 없음
 });
 
 
@@ -200,18 +203,17 @@ app.post('/resendCode', (req, res) => {
 // });
 
 
-// 회원가입 API
 app.post('/signup', async (req, res) => {
-    const verification_code = Math.floor(100000 + Math.random() * 900000); // 6자리 랜덤 코드 생성
-    const code_expiration = dayjs().add(10, 'minutes').format('YYYY-MM-DD HH:mm:ss'); // 10분 뒤 만료
-    const is_verified = 0; // 초기값: 이메일 인증 미완료 상태 (0)
+    const verification_code = Math.floor(100000 + Math.random() * 900000); 
+    const code_expiration = dayjs().add(10, 'minutes').format('YYYY-MM-DD HH:mm:ss');
+    const is_verified = 0;
 
     const { username, password, birthdate, name, email, phone, vehicle, vehicleNumber, vehicleType, licenseImage } = req.body;
 
-    const connection = await db.getConnection();
-
+    let connection;
     try {
-        await connection.beginTransaction();
+        connection = await db.getConnection(); // 커넥션 가져오기
+        await connection.beginTransaction(); // 트랜잭션 시작
 
         // Step 1: users 테이블에 데이터 삽입
         const userInsertQuery = `
@@ -229,17 +231,15 @@ app.post('/signup', async (req, res) => {
             code_expiration,
             is_verified,
         ]);
-        const userId = userResult.insertId; // 생성된 사용자 ID
-        console.log('Step 1 성공: 사용자 데이터 삽입 완료');
+        const userId = userResult.insertId;
 
-        // Step 2: 차량 데이터 삽입 (필요 시)
+        // Step 2: 차량 데이터 삽입
         if (vehicle === '유') {
             const vehicleInsertQuery = `
                 INSERT INTO user_vehicle (owner_id, vehicle_number, vehicle_type, license_image)
                 VALUES (?, ?, ?, ?)
             `;
             await connection.query(vehicleInsertQuery, [userId, vehicleNumber, vehicleType, licenseImage]);
-            console.log('Step 2 성공: 차량 데이터 삽입 완료');
         }
 
         // Step 3: 이메일 전송
@@ -257,15 +257,16 @@ app.post('/signup', async (req, res) => {
             throw new Error('이메일 전송 중 오류가 발생했습니다.');
         }
 
-        // 모든 작업 성공 시 커밋
-        await connection.commit();
+        await connection.commit(); // 트랜잭션 커밋
         res.status(201).json({ message: '회원가입 성공! 이메일로 인증 코드를 발송했습니다.' });
-    } catch (error) {
-        await connection.rollback();
-        console.error('트랜잭션 롤백: 전체 작업 취소', error);
-        res.status(500).json({ message: error.message || '회원가입 중 오류가 발생했습니다.' });
-    } finally {
-        connection.release();
+    } 
+    catch (error) {
+        if (connection) await connection.rollback(); // 트랜잭션 롤백
+        console.error('회원가입 실패:', error);
+        res.status(500).json({ message: '회원가입 중 오류가 발생했습니다.' });
+    } 
+    finally {
+        if (connection) connection.release(); // 커넥션 반환
     }
 });
 
