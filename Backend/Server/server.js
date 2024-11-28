@@ -25,9 +25,6 @@ const db = mysql.createPool({
     password: '1234',               // 데이터베이스 비밀번호
     database: 'CarFull',            // 사용할 데이터베이스 이름
     port: 30240,                    // 포트 번호
-    waitForConnections: true,       // 연결 대기 활성화
-    connectionLimit: 10,            // 최대 연결 수
-    queueLimit: 0                   // 대기열 제한 없음
 });
 
 
