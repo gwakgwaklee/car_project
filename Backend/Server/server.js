@@ -286,10 +286,9 @@ app.post('/signup', (req, res) => {
                                     res.status(500).json({ message: '커밋 중 오류 발생', error: err.message });
                                 });
                             }
-
-                            connection.release();
                             res.status(201).json({ message: '회원가입 성공! 이메일 인증 코드를 발송했습니다.' });
                         });
+                        connection.release();
                     }
                 }
             );
