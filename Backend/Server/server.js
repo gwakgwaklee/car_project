@@ -207,25 +207,23 @@ app.post('/resendCode', (req, res) => {
 // });
 
 
-// 로그인 엔드포인트
-app.post('/signup', (req, res) => {
+// 회원가입 API 요청
+app.post('/signup', async (req, res) => {
+    const { username, password, birthdate, name, email, phone, vehicle, vehicleNumber, vehicleType, licenseImage } = req.body;
     const verification_code = Math.floor(100000 + Math.random() * 900000);
     const code_expiration = new Date(Date.now() + 10 * 60 * 1000); // 10분 후 만료
     const is_verified = 0;
-    const { username, password, birthdate, name, email, phone, vehicle, vehicleNumber, vehicleType, licenseImage } = req.body;
 
-    db.getConnection((err, connection) => {
+    // 커넥션 풀에서 커넥션 가져오기
+    db.getConnection(async (err, connection) => {
         if (err) {
             console.error('Connection Error:', err);
-            return res.status(500).json({ message: '서버 오류 발생' });
+            return res.status(500).json({ message: '서버 연결 오류' });
         }
 
-        connection.beginTransaction((err) => {
-            if (err) {
-                connection.release();
-                console.error('Transaction Error:', err);
-                return res.status(500).json({ message: '트랜잭션 오류 발생' });
-            }
+        try {
+            // 트랜잭션 시작
+            await connection.promise().beginTransaction();
 
             // Step 1: 사용자 데이터 삽입
             const userInsertQuery = `
@@ -233,63 +231,52 @@ app.post('/signup', (req, res) => {
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
 
-            connection.query(
-                userInsertQuery,
-                [username, email, password, birthdate, name, phone, verification_code, code_expiration, is_verified],
-                (err, results) => {
-                    if (err) {
-                        return connection.rollback(() => {
-                            connection.release();
-                            console.error('Insert User Error:', err);
-                            res.status(500).json({ message: '회원가입 중 오류 발생' });
-                        });
-                    }
+            const [userResult] = await connection.promise().query(userInsertQuery, [
+                username,
+                email,
+                password,
+                birthdate,
+                name,
+                phone,
+                verification_code,
+                code_expiration,
+                is_verified,
+            ]);
 
-                    const userId = results.insertId;
+            const userId = userResult.insertId;
 
-                    // Step 2: 차량 정보 삽입 (선택적)
-                    if (vehicle === '유') {
-                        const vehicleInsertQuery = `
-                            INSERT INTO user_vehicle (owner_id, vehicle_number, vehicle_type, license_image)
-                            VALUES (?, ?, ?, ?)
-                        `;
+            // SAVEPOINT 설정
+            await connection.promise().query('SAVEPOINT user_inserted');
 
-                        connection.query(
-                            vehicleInsertQuery,
-                            [userId, vehicleNumber, vehicleType, licenseImage],
-                            (err) => {
-                                if (err) {
-                                    return connection.rollback(() => {
-                                        connection.release();
-                                        console.error('Insert Vehicle Error:', err);
-                                        res.status(500).json({ message: '차량 정보 저장 중 오류 발생' });
-                                    });
-                                }
+            // Step 2: 차량 정보 삽입 (선택적)
+            if (vehicle === '유') {
+                const vehicleInsertQuery = `
+                    INSERT INTO user_vehicle (owner_id, vehicle_number, vehicle_type, license_image)
+                    VALUES (?, ?, ?, ?)
+                `;
 
-                                commitTransaction();
-                            }
-                        );
-                    } 
-                    else {
-                        commitTransaction();
-                    }
+                await connection.promise().query(vehicleInsertQuery, [
+                    userId,
+                    vehicleNumber,
+                    vehicleType,
+                    licenseImage,
+                ]);
+            }
 
-                    function commitTransaction() {
-                        connection.commit((err) => {
-                            if (err) {
-                                console.error('Commit Error:', err); // 에러 로그 출력
-                                return connection.rollback(() => {
-                                    connection.release();
-                                    res.status(500).json({ message: '커밋 중 오류 발생', error: err.message });
-                                });
-                            }
-                            res.status(201).json({ message: '회원가입 성공! 이메일 인증 코드를 발송했습니다.' });
-                        });
-                        connection.release();
-                    }
-                }
-            );
-        });
+            // 모든 작업이 성공하면 커밋
+            await connection.promise().commit();
+            res.status(201).json({ message: '회원가입 성공! 이메일 인증 코드를 발송했습니다.' });
+        } catch (err) {
+            console.error('Transaction Error:', err);
+
+            // 특정 저장점으로 롤백
+            await connection.promise().query('ROLLBACK TO SAVEPOINT user_inserted');
+            await connection.promise().rollback();
+
+            res.status(500).json({ message: '회원가입 중 오류가 발생했습니다.' });
+        } finally {
+            connection.release();
+        }
     });
 });
 
