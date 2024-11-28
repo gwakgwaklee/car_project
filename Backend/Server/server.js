@@ -214,7 +214,6 @@ app.post('/signup', async (req, res) => {
     const code_expiration = new Date(Date.now() + 10 * 60 * 1000); // 10분 후 만료
     const is_verified = 0;
 
-    // 커넥션 풀에서 커넥션 가져오기
     db.getConnection(async (err, connection) => {
         if (err) {
             console.error('Connection Error:', err);
@@ -230,7 +229,6 @@ app.post('/signup', async (req, res) => {
                 INSERT INTO users (username, email, password, birthdate, name, phone, verification_code, code_expiration, is_verified)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
-
             const [userResult] = await connection.promise().query(userInsertQuery, [
                 username,
                 email,
@@ -248,13 +246,19 @@ app.post('/signup', async (req, res) => {
             // SAVEPOINT 설정
             await connection.promise().query('SAVEPOINT user_inserted');
 
-            // Step 2: 차량 정보 삽입 (선택적)
+            // Step 2: roles 테이블에 기본값 추가 (일반 사용자)
+            const roleInsertQuery = `
+                INSERT INTO roles (id, permission, assigned_at)
+                VALUES (?, '일반 사용자', NOW())
+            `;
+            await connection.promise().query(roleInsertQuery, [userId]);
+
+            // Step 3: 차량 정보 삽입 (선택적)
             if (vehicle === '유') {
                 const vehicleInsertQuery = `
                     INSERT INTO user_vehicle (owner_id, vehicle_number, vehicle_type, license_image)
                     VALUES (?, ?, ?, ?)
                 `;
-
                 await connection.promise().query(vehicleInsertQuery, [
                     userId,
                     vehicleNumber,
@@ -263,7 +267,7 @@ app.post('/signup', async (req, res) => {
                 ]);
             }
 
-            // 모든 작업이 성공하면 커밋
+            // 모든 작업 성공 시 커밋
             await connection.promise().commit();
             res.status(201).json({ message: '회원가입 성공! 이메일 인증 코드를 발송했습니다.' });
         } catch (err) {
