@@ -207,7 +207,7 @@ app.post('/resendCode', (req, res) => {
 // });
 
 
-// 회원가입 API 요청
+// 회원가입 요청 API
 app.post('/signup', async (req, res) => {
     const { username, password, birthdate, name, email, phone, vehicle, vehicleNumber, vehicleType, licenseImage } = req.body;
     const verification_code = Math.floor(100000 + Math.random() * 900000);
@@ -283,6 +283,8 @@ app.post('/signup', async (req, res) => {
         }
     });
 });
+
+
 
 
 // 아이디 찾기
