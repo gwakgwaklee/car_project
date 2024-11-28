@@ -128,8 +128,6 @@ app.post('/verify', (req, res) => {
 //새 인증 코드 재전송
 app.post('/resendCode', (req, res) => {
     const { username, email } = req.body;
-    console.log('이메일 인증 단계 : ', verificationCode, username)
-
     // 새 인증 코드와 만료 시간 생성
     const newCode = Math.floor(100000 + Math.random() * 900000);
     const newExpiration = dayjs().add(10, 'minute').format('YYYY-MM-DD HH:mm:ss');
