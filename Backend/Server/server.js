@@ -43,15 +43,16 @@ const db = mysql.createPool({
 //   });
 
 // MySQL 연결
-(async () => {
-    try {
-        const connection = await db.getConnection();
-        console.log('MySQL에 연결되었습니다.');
-        connection.release(); // 연결 반환
-    } catch (error) {
-        console.error('MySQL 연결 실패:', error);
+db.getConnection((err, connection) => {
+    if (err) {
+        console.error('MySQL 연결 실패:', err);
+        return;
     }
-})();
+
+    console.log('MySQL에 연결되었습니다.');
+    connection.release(); // 연결 반환
+});
+
 
 
 // 로그인 엔드포인트
@@ -209,71 +210,90 @@ app.post('/resendCode', (req, res) => {
 // });
 
 
-app.post('/signup', async (req, res) => {
-    const verification_code = Math.floor(100000 + Math.random() * 900000); 
-    const code_expiration = dayjs().add(10, 'minutes').format('YYYY-MM-DD HH:mm:ss');
+// 로그인 엔드포인트
+app.post('/signup', (req, res) => {
+    const verification_code = Math.floor(100000 + Math.random() * 900000);
+    const code_expiration = new Date(Date.now() + 10 * 60 * 1000); // 10분 후 만료
     const is_verified = 0;
-
     const { username, password, birthdate, name, email, phone, vehicle, vehicleNumber, vehicleType, licenseImage } = req.body;
 
-    let connection;
-    try {
-        connection = await db.getConnection(); // 커넥션 가져오기
-        await connection.beginTransaction(); // 트랜잭션 시작
+    db.getConnection((err, connection) => {
+        if (err) {
+            console.error('Connection Error:', err);
+            return res.status(500).json({ message: '서버 오류 발생' });
+        }
 
-        // Step 1: users 테이블에 데이터 삽입
-        const userInsertQuery = `
-            INSERT INTO users (username, email, password, birthdate, name, phone, verification_code, code_expiration, is_verified)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `;
-        const [userResult] = await connection.query(userInsertQuery, [
-            username,
-            email,
-            password,
-            birthdate,
-            name,
-            phone,
-            verification_code,
-            code_expiration,
-            is_verified,
-        ]);
-        const userId = userResult.insertId;
+        connection.beginTransaction((err) => {
+            if (err) {
+                connection.release();
+                console.error('Transaction Error:', err);
+                return res.status(500).json({ message: '트랜잭션 오류 발생' });
+            }
 
-        // Step 2: 차량 데이터 삽입
-        if (vehicle === '유') {
-            const vehicleInsertQuery = `
-                INSERT INTO user_vehicle (owner_id, vehicle_number, vehicle_type, license_image)
-                VALUES (?, ?, ?, ?)
+            // Step 1: 사용자 데이터 삽입
+            const userInsertQuery = `
+                INSERT INTO users (username, email, password, birthdate, name, phone, verification_code, code_expiration, is_verified)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
-            await connection.query(vehicleInsertQuery, [userId, vehicleNumber, vehicleType, licenseImage]);
-        }
 
-        // Step 3: 이메일 전송
-        const emailResult = await mailer(
-            username,
-            email,
-            '회원가입 인증 코드',
-            `<p>안녕하세요, <b>${username}</b>님!</p>
-             <p>회원가입을 완료하려면 아래 인증 코드를 입력해주세요.</p>
-             <h3>인증 코드: <b>${verification_code}</b></h3>
-             <p>이 코드는 10분 동안 유효합니다.</p>`
-        );
+            connection.query(
+                userInsertQuery,
+                [username, email, password, birthdate, name, phone, verification_code, code_expiration, is_verified],
+                (err, results) => {
+                    if (err) {
+                        return connection.rollback(() => {
+                            connection.release();
+                            console.error('Insert User Error:', err);
+                            res.status(500).json({ message: '회원가입 중 오류 발생' });
+                        });
+                    }
 
-        if (emailResult !== 'success') {
-            throw new Error('이메일 전송 중 오류가 발생했습니다.');
-        }
+                    const userId = results.insertId;
 
-        await connection.commit(); // 트랜잭션 커밋
-        res.status(201).json({ message: '회원가입 성공! 이메일로 인증 코드를 발송했습니다.' });
-    } 
-    catch (error) {
-        if (connection) await connection.rollback(); // 트랜잭션 롤백
-        console.error('회원가입 실패:', error);
-        res.status(500).json({ message: '회원가입 중 오류가 발생했습니다.' });
-    } 
-    finally {
-        if (connection) connection.release(); // 커넥션 반환
-    }
+                    // Step 2: 차량 정보 삽입 (선택적)
+                    if (vehicle === '유') {
+                        const vehicleInsertQuery = `
+                            INSERT INTO user_vehicle (owner_id, vehicle_number, vehicle_type, license_image)
+                            VALUES (?, ?, ?, ?)
+                        `;
+
+                        connection.query(
+                            vehicleInsertQuery,
+                            [userId, vehicleNumber, vehicleType, licenseImage],
+                            (err) => {
+                                if (err) {
+                                    return connection.rollback(() => {
+                                        connection.release();
+                                        console.error('Insert Vehicle Error:', err);
+                                        res.status(500).json({ message: '차량 정보 저장 중 오류 발생' });
+                                    });
+                                }
+
+                                commitTransaction();
+                            }
+                        );
+                    } else {
+                        commitTransaction();
+                    }
+
+                    function commitTransaction() {
+                        connection.commit((err) => {
+                            if (err) {
+                                return connection.rollback(() => {
+                                    connection.release();
+                                    console.error('Commit Error:', err);
+                                    res.status(500).json({ message: '커밋 중 오류 발생' });
+                                });
+                            }
+
+                            connection.release();
+                            res.status(201).json({ message: '회원가입 성공! 이메일 인증 코드를 발송했습니다.' });
+                        });
+                    }
+                }
+            );
+        });
+    });
 });
 
 // 아이디 찾기
