@@ -200,7 +200,7 @@ app.post('/resendCode', (req, res) => {
 // });
 
 
-// 회원가입 API 
+// 회원가입 API
 app.post('/signup', async (req, res) => {
     const verification_code = Math.floor(100000 + Math.random() * 900000); // 6자리 랜덤 코드 생성
     const code_expiration = dayjs().add(10, 'minutes').format('YYYY-MM-DD HH:mm:ss'); // 10분 뒤 만료
@@ -214,77 +214,52 @@ app.post('/signup', async (req, res) => {
         await connection.beginTransaction();
 
         // Step 1: users 테이블에 데이터 삽입
-        let userId;
-        try {
-            const userInsertQuery = `
-                INSERT INTO users (username, email, password, birthdate, name, phone, verification_code, code_expiration, is_verified)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `;
-            const [userResult] = await connection.query(userInsertQuery, [
-                username,
-                email,
-                password,
-                birthdate,
-                name,
-                phone,
-                verification_code,
-                code_expiration,
-                is_verified,
-            ]);
-            userId = userResult.insertId; // 생성된 사용자 ID
-            console.log('Step 1 성공: 사용자 데이터 삽입 완료');
-        } catch (error) {
-            if (error.code === 'ER_DUP_ENTRY') {
-                console.error('Step 1 오류: 중복된 사용자 이메일', error);
-                throw new Error('이미 사용 중인 이메일 주소입니다.');
-            } else {
-                console.error('Step 1 오류: 사용자 데이터 삽입 실패', error);
-                throw new Error('사용자 데이터 삽입 중 예상치 못한 오류가 발생했습니다.');
-            }
-        }
+        const userInsertQuery = `
+            INSERT INTO users (username, email, password, birthdate, name, phone, verification_code, code_expiration, is_verified)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+        const [userResult] = await connection.query(userInsertQuery, [
+            username,
+            email,
+            password,
+            birthdate,
+            name,
+            phone,
+            verification_code,
+            code_expiration,
+            is_verified,
+        ]);
+        const userId = userResult.insertId; // 생성된 사용자 ID
+        console.log('Step 1 성공: 사용자 데이터 삽입 완료');
 
         // Step 2: 차량 데이터 삽입 (필요 시)
         if (vehicle === '유') {
-            try {
-                const vehicleInsertQuery = `
-                    INSERT INTO user_vehicle (owner_id, vehicle_number, vehicle_type, license_image)
-                    VALUES (?, ?, ?, ?)
-                `;
-                await connection.query(vehicleInsertQuery, [userId, vehicleNumber, vehicleType, licenseImage]);
-                console.log('Step 2 성공: 차량 데이터 삽입 완료');
-            } catch (error) {
-                console.error('Step 2 오류: 차량 데이터 삽입 실패', error);
-                throw new Error('차량 데이터 삽입 중 오류가 발생했습니다.');
-            }
+            const vehicleInsertQuery = `
+                INSERT INTO user_vehicle (owner_id, vehicle_number, vehicle_type, license_image)
+                VALUES (?, ?, ?, ?)
+            `;
+            await connection.query(vehicleInsertQuery, [userId, vehicleNumber, vehicleType, licenseImage]);
+            console.log('Step 2 성공: 차량 데이터 삽입 완료');
         }
 
         // Step 3: 이메일 전송
-        try {
-            const emailResult = await mailer(
-                username,
-                email,
-                '회원가입 인증 코드',
-                `<p>안녕하세요, <b>${username}</b>님!</p>
-                 <p>회원가입을 완료하려면 아래 인증 코드를 입력해주세요.</p>
-                 <h3>인증 코드: <b>${verification_code}</b></h3>
-                 <p>이 코드는 10분 동안 유효합니다.</p>`
-            );
+        const emailResult = await mailer(
+            username,
+            email,
+            '회원가입 인증 코드',
+            `<p>안녕하세요, <b>${username}</b>님!</p>
+             <p>회원가입을 완료하려면 아래 인증 코드를 입력해주세요.</p>
+             <h3>인증 코드: <b>${verification_code}</b></h3>
+             <p>이 코드는 10분 동안 유효합니다.</p>`
+        );
 
-            if (emailResult !== 'success') {
-                console.error('Step 3 오류: 이메일 전송 실패');
-                throw new Error('이메일 전송 중 오류가 발생했습니다.');
-            }
-            console.log('Step 3 성공: 이메일 전송 완료');
-        } catch (error) {
-            console.error('Step 3 오류: 이메일 전송 실패', error);
-            throw error;
+        if (emailResult !== 'success') {
+            throw new Error('이메일 전송 중 오류가 발생했습니다.');
         }
 
         // 모든 작업 성공 시 커밋
         await connection.commit();
-        console.log('트랜잭션 성공: 모든 작업 커밋 완료');
         res.status(201).json({ message: '회원가입 성공! 이메일로 인증 코드를 발송했습니다.' });
-
     } catch (error) {
         await connection.rollback();
         console.error('트랜잭션 롤백: 전체 작업 취소', error);
