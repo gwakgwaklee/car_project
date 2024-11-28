@@ -43,10 +43,16 @@ const db = mysql.createPool({
 //   });
 
 // MySQL 연결
-db.connect((err) => {
-    if (err) throw err;
-    console.log('MySQL에 연결되었습니다.');
-});
+(async () => {
+    try {
+        const connection = await db.getConnection();
+        console.log('MySQL에 연결되었습니다.');
+        connection.release(); // 연결 반환
+    } catch (error) {
+        console.error('MySQL 연결 실패:', error);
+    }
+})();
+
 
 // 로그인 엔드포인트
 app.post('/login', (req, res) => {
