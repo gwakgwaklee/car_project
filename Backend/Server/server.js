@@ -506,10 +506,6 @@ app.post('/update_passengers', (req, res) => {
         if (carpoolResults.length === 0) {
             return res.status(404).json({ message: '해당 카풀 방이 존재하지 않습니다.' });
         }
-        // 운전자인 경우 신청 차단
-        if (driver === id) {
-            return res.status(403).json({ message: '본인이 모집한 카풀에는 신청할 수 없습니다.' });
-        }
 
         const { current_passengers, max_passengers } = carpoolResults[0];
 
