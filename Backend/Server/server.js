@@ -714,9 +714,8 @@ app.get('/', (req, res) => {
     res.send('Hello World!');
 });
 
-// 서버 실행
-app.listen(port, () => {
-    console.log(`서버가 실행되었습니다. 접속주소: http://localhost:${port}`);
+server.listen(port, () => {
+    console.log(`서버가 실행되었습니다. http://localhost:${port}`);
 });
 
 
