@@ -4,11 +4,18 @@ const express = require('express');
 const mysql = require('mysql2'); // promise 기반 모듈 사용
 const cors = require('cors');
 const dayjs = require('dayjs');
+const http = require('http');
+const WebSocket = require('ws');
 
 const app = express();
 const port = 3001; // 클라이언트와 일치하는 포트로 설정
 
 const mailer = require('./mailer.js');
+
+// HTTP 서버 생성
+const server = http.createServer(app);
+// WebSocket 서버 생성
+const wss = new WebSocket.Server({ server });
 
 app.use(cors({
     origin: 'https://port-0-car-project-m36t9oitd12e09cb.sel4.cloudtype.app', // 서버 URL
@@ -50,6 +57,44 @@ db.getConnection((err, connection) => {
     connection.release(); // 연결 반환
 });
 
+// WebSocket 연결 처리
+wss.on('connection', (ws) => {
+    console.log('WebSocket 연결이 설정되었습니다.');
+
+    ws.on('message', (message) => {
+        try {
+            const data = JSON.parse(message);
+
+            if (data.type === 'SUBSCRIBE') {
+                const carpoolId = data.carpoolId;
+                console.log(`카풀 ${carpoolId}의 실시간 위치를 구독했습니다.`);
+                
+                // 예제: 실시간 위치 데이터 전송
+                const interval = setInterval(() => {
+                    const randomLat = 37.5665 + Math.random() * 0.01 - 0.005;
+                    const randomLng = 126.9780 + Math.random() * 0.01 - 0.005;
+
+                    ws.send(JSON.stringify({
+                        latitude: randomLat,
+                        longitude: randomLng,
+                    }));
+                }, 2000);
+
+                // 연결 종료 시 인터벌 제거
+                ws.on('close', () => {
+                    clearInterval(interval);
+                    console.log('WebSocket 연결이 종료되었습니다.');
+                });
+            }
+        } catch (error) {
+            console.error('WebSocket 메시지 처리 중 오류:', error);
+        }
+    });
+
+    ws.on('close', () => {
+        console.log('WebSocket 연결이 종료되었습니다.');
+    });
+});
 
 
 // 로그인 엔드포인트
@@ -642,6 +687,27 @@ app.post("/cancelReservation", (req, res) => {
   });
 });
 
+const deletePastCarpools = (callback) => {
+    const currentTime = dayjs().format('YYYY-MM-DD HH:mm:ss'); // 현재 시간
+  
+    const deleteQuery = `
+      DELETE FROM carpool 
+      WHERE start_time < ?
+    `;
+  
+    db.query(deleteQuery, [currentTime], (err, result) => {
+      if (err) {
+        console.error('과거 카풀 삭제 중 오류 발생:', err);
+        callback && callback(err);
+      } else {
+        console.log(`과거 카풀 삭제 완료: ${result.affectedRows}개의 일정이 삭제되었습니다.`);
+        callback && callback(null, result);
+      }
+    });
+  };
+
+  
+
 
 // 기본 라우트
 app.get('/', (req, res) => {
@@ -652,3 +718,5 @@ app.get('/', (req, res) => {
 app.listen(port, () => {
     console.log(`서버가 실행되었습니다. 접속주소: http://localhost:${port}`);
 });
+
+
