@@ -560,10 +560,12 @@ app.get('/getPassengers', (req, res) => {
             c.start_region, 
             c.end_region, 
             c.start_time, 
-            ce.details
+            ce.details,
+            uv.vehicle_number -- 차량 번호 추가
         FROM carpool_passengers cp
         JOIN carpool c ON cp.room_id = c.room_id
         LEFT JOIN carpool_etc ce ON c.room_id = ce.room_id
+        LEFT JOIN user_vehicle uv ON c.driver = uv.owner_id -- driver와 vehicle의 owner_id를 조인
         WHERE cp.passenger_id = ? -- passengers 대신 passenger_id로 수정
     `;
 
