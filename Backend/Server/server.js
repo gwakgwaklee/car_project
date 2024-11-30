@@ -57,7 +57,7 @@ db.getConnection((err, connection) => {
     connection.release(); // 연결 반환
 });
 
-// WebSocket 연결 처리
+// WebSocket 연결 처리- 브로드 캐스트 방식
 wss.on('connection', (ws) => {
     console.log('WebSocket 연결이 설정되었습니다.');
 
@@ -65,25 +65,15 @@ wss.on('connection', (ws) => {
         try {
             const data = JSON.parse(message);
 
-            if (data.type === 'SUBSCRIBE') {
-                const carpoolId = data.carpoolId;
-                console.log(`카풀 ${carpoolId}의 실시간 위치를 구독했습니다.`);
-                
-                // 예제: 실시간 위치 데이터 전송
-                const interval = setInterval(() => {
-                    const randomLat = 37.5665 + Math.random() * 0.01 - 0.005;
-                    const randomLng = 126.9780 + Math.random() * 0.01 - 0.005;
+            if (data.type === 'LOCATION_UPDATE') {
+                const { latitude, longitude } = data;
+                console.log(`수신된 GPS 데이터: ${latitude}, ${longitude}`);
 
-                    ws.send(JSON.stringify({
-                        latitude: randomLat,
-                        longitude: randomLng,
-                    }));
-                }, 2000);
-
-                // 연결 종료 시 인터벌 제거
-                ws.on('close', () => {
-                    clearInterval(interval);
-                    console.log('WebSocket 연결이 종료되었습니다.');
+                // 연결된 모든 클라이언트로 위치 데이터 브로드캐스트
+                wss.clients.forEach((client) => {
+                    if (client.readyState === WebSocket.OPEN) {
+                        client.send(JSON.stringify({ latitude, longitude }));
+                    }
                 });
             }
         } catch (error) {
