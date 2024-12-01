@@ -288,17 +288,20 @@ app.post('/signup', async (req, res) => {
             `;
             await connection.promise().query(roleInsertQuery, [userId]);
 
-            // Step 3: 차량 정보 삽입 (선택적)
+            // Step 3: 차량 및 라이센스 정보 삽입 (선택적)
             if (vehicle === '유') {
+                const licenseInsertQuery = `
+                INSERT INTO user_license (id, license_path, is_approved, uploaded_at)
+                VALUES (?, ?, 0, NOW())`;
+                await connection.promise().query(licenseInsertQuery, [userId, licenseImage]); // is_approved 기본값은 0
+
                 const vehicleInsertQuery = `
-                    INSERT INTO user_vehicle (owner_id, vehicle_number, vehicle_type, license_image)
-                    VALUES (?, ?, ?, ?)
-                `;
+                 INSERT INTO user_vehicle (owner_id, vehicle_number, vehicle_type)
+                VALUES (?, ?, ?)`;
                 await connection.promise().query(vehicleInsertQuery, [
                     userId,
                     vehicleNumber,
                     vehicleType,
-                    licenseImage,
                 ]);
             }
 
@@ -318,7 +321,6 @@ app.post('/signup', async (req, res) => {
         }
     });
 });
-
 
 
 
