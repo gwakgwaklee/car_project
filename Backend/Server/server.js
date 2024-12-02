@@ -114,12 +114,16 @@ app.post('/login', (req, res) => {
 
 // 라이센스 대기중 user 긁어오는 API
 app.post('/pending_users', (req, res) => {
-    const { adminId } = req.body; // 클라이언트에서 adminId 받기
+    const { adminId } = req.body;
 
-    // 관리자 권한 체크 (필요한 경우)
-    db.query('SELECT * FROM roles WHERE id = ?', [adminId], (err, adminResults) => {
-        if (err || adminResults.length === 0) {
-            return res.status(403).json({ message: '권한 없음' }); // 권한 없으면 응답
+    // 관리자 권한 체크
+    db.query('SELECT * FROM roles WHERE id = ? AND permission = "어드민"', [adminId], (err, adminResults) => {
+        if (err) {
+            console.error('DB Error:', err);
+            return res.status(500).json({ message: '서버 오류' });
+        }
+        if (adminResults.length === 0) {
+            return res.status(403).json({ message: '권한 없음' }); // 권한 없음
         }
 
         // 승인 대기 중인 사용자 가져오기
