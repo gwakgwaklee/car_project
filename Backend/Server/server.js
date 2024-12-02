@@ -125,7 +125,7 @@ app.post('/pending-users', (req, res) => {
         INNER JOIN 
             users AS u 
         ON 
-            ul.user_id = u.id
+            ul.id = u.id
         WHERE 
             ul.is_approved = 0
     `;
