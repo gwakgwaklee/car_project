@@ -813,42 +813,89 @@ const deletePastCarpools = (callback) => {
       }
     });
   };
-  app.post("/api/point", async (req, res) => {
-    try {
-      const { user_id, ride_temperature } = req.body;
-  
-      // 기존 사용자 데이터 가져오기
-      const userPoint = await UserPoint.findOne({ where: { id: user_id } });
-  
-      if (userPoint) {
-        // 기존 데이터 업데이트
-        const updatedRideCount = userPoint.ride_count + 1; // 기존 탑승 횟수에 1 추가
-        const updatedTemperature =
-          (userPoint.ride_temperature * userPoint.ride_count + ride_temperature) /
-          (userPoint.ride_count + 1); // 새로운 평균 별점 계산
-  
-        await userPoint.update({
-          ride_count: updatedRideCount,
-          ride_temperature: updatedTemperature,
-          updated_at: new Date(),
-        });
-      } else {
-        // 새 데이터 삽입 (처음 탑승인 경우)
-        await UserPoint.create({
-          id: user_id,
-          ride_count: 1,
-          ride_temperature: ride_temperature,
-          updated_at: new Date(),
-        });
-      }
-  
-      res.status(200).json({ message: "별점 및 탑승 횟수가 성공적으로 업데이트되었습니다." });
-    } catch (error) {
-      console.error("별점 저장 실패:", error);
-      res.status(500).json({ message: "서버 오류 발생" });
+
+app.post('/api/point-update', async (req, res) => {
+    const { user_id, ride_temperature, drive_temperature } = req.body;
+
+    if (!user_id || ride_temperature === undefined || drive_temperature === undefined) {
+        return res.status(400).json({ message: 'user_id, ride_temperature, drive_temperature가 필요합니다.' });
     }
-  });
-  
+
+    db.getConnection(async (err, connection) => {
+        if (err) {
+            console.error('MySQL 연결 오류:', err);
+            return res.status(500).json({ message: '서버 연결 오류가 발생했습니다.' });
+        }
+
+        try {
+            // 트랜잭션 시작
+            await connection.promise().beginTransaction();
+
+            // Step 1: user_point 테이블 업데이트 또는 삽입
+            const [userRows] = await connection.promise().query(
+                'SELECT ride_count, ride_temperature FROM user_point WHERE id = ?',
+                [user_id]
+            );
+
+            if (userRows.length > 0) {
+                // 기존 데이터 업데이트
+                const { ride_count, ride_temperature: currentRideTemp } = userRows[0];
+                const updatedRideCount = ride_count + 1;
+                const updatedRideTemp =
+                    (currentRideTemp * ride_count + ride_temperature) / updatedRideCount;
+
+                await connection.promise().query(
+                    'UPDATE user_point SET ride_count = ?, ride_temperature = ?, updated_at = NOW() WHERE id = ?',
+                    [updatedRideCount, updatedRideTemp, user_id]
+                );
+            } else {
+                // 새 데이터 삽입
+                await connection.promise().query(
+                    'INSERT INTO user_point (id, ride_count, ride_temperature, updated_at) VALUES (?, ?, ?, NOW())',
+                    [user_id, 1, ride_temperature]
+                );
+            }
+
+            // Step 2: driver_point 테이블 업데이트 또는 삽입
+            const [driverRows] = await connection.promise().query(
+                'SELECT drive_count, drive_temperature FROM driver_point WHERE id = ?',
+                [user_id]
+            );
+
+            if (driverRows.length > 0) {
+                // 기존 데이터 업데이트
+                const { drive_count, drive_temperature: currentDriveTemp } = driverRows[0];
+                const updatedDriveCount = drive_count + 1;
+                const updatedDriveTemp =
+                    (currentDriveTemp * drive_count + drive_temperature) / updatedDriveCount;
+
+                await connection.promise().query(
+                    'UPDATE driver_point SET drive_count = ?, drive_temperature = ?, updated_at = NOW() WHERE id = ?',
+                    [updatedDriveCount, updatedDriveTemp, user_id]
+                );
+            } else {
+                // 새 데이터 삽입
+                await connection.promise().query(
+                    'INSERT INTO driver_point (id, drive_count, drive_temperature, updated_at) VALUES (?, ?, ?, NOW())',
+                    [user_id, 1, drive_temperature]
+                );
+            }
+
+            // 트랜잭션 커밋
+            await connection.promise().commit();
+            res.status(200).json({ message: '탑승 및 운전 데이터가 성공적으로 업데이트되었습니다.' });
+        } catch (err) {
+            console.error('데이터 저장 중 오류 발생:', err);
+
+            // 트랜잭션 롤백
+            await connection.promise().rollback();
+            res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+        } finally {
+            connection.release(); // 연결 반환
+        }
+    });
+});
+
 
   
 
