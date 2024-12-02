@@ -113,36 +113,35 @@ app.post('/login', (req, res) => {
 });
 
 // 라이센스 대기중 user 긁어오는 API
-app.post('/pending_users', (req, res) => {
-    const { adminId } = req.body;
-    console.log(adminId);
-    // 관리자 권한 체크
-    db.query('SELECT * FROM roles WHERE id = ? AND permission = "어드민"', [adminId], (err, adminResults) => {
+app.post('/pending-users', (req, res) => {
+    // 쿼리 작성
+    const query = `
+        SELECT 
+            u.name, 
+            u.birthdate, 
+            ul.license_path
+        FROM 
+            user_license AS ul
+        INNER JOIN 
+            users AS u 
+        ON 
+            ul.user_id = u.id
+        WHERE 
+            ul.is_approved = 0
+    `;
+
+    db.query(query, (err, results) => {
         if (err) {
-            console.error('DB Error:', err);
-            return res.status(500).json({ message: '서버 오류' });
-        }
-        if (adminResults.length === 0) {
-            return res.status(403).json({ message: '권한 없음' }); // 권한 없음
+            console.error('Error fetching pending users:', err);
+            return res.status(500).json({ message: '데이터를 가져오는 중 오류 발생' });
         }
 
-        // 승인 대기 중인 사용자 가져오기
-        const query = `
-            SELECT u.name, u.birthdate, u.username, ul.license_path
-            FROM user_license AS ul
-            INNER JOIN users AS u ON ul.user_id = u.id
-            WHERE ul.is_approved = 0
-        `;
-
-        db.query(query, (err, results) => {
-            if (err) {
-                console.error('Error fetching pending users:', err);
-                return res.status(500).json({ message: '데이터를 가져오는 중 오류 발생' });
-            }
-            res.status(200).json(results); // 승인 대기 중인 사용자 반환
-        });
+        // 데이터 반환
+        res.status(200).json(results);
     });
 });
+
+
 
 //인증코드 확인
 app.post('/verify', (req, res) => {
