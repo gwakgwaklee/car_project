@@ -901,10 +901,6 @@ app.post('/api/point-update', async (req, res) => {
     });
 });
 
-
-  
-
-
 // 기본 라우트
 app.get('/', (req, res) => {
     res.send('Hello World!');
