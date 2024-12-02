@@ -112,6 +112,33 @@ app.post('/login', (req, res) => {
     });
 });
 
+// 라이센스 대기중 user 긁어오는 API
+app.post('/pending_users', (req, res) => {
+    const { adminId } = req.body; // 클라이언트에서 adminId 받기
+
+    // 관리자 권한 체크 (필요한 경우)
+    db.query('SELECT * FROM admins WHERE id = ?', [adminId], (err, adminResults) => {
+        if (err || adminResults.length === 0) {
+            return res.status(403).json({ message: '권한 없음' }); // 권한 없으면 응답
+        }
+
+        // 승인 대기 중인 사용자 가져오기
+        const query = `
+            SELECT u.name, u.birthdate, u.username, ul.license_path
+            FROM user_license AS ul
+            INNER JOIN users AS u ON ul.user_id = u.id
+            WHERE ul.is_approved = 0
+        `;
+
+        db.query(query, (err, results) => {
+            if (err) {
+                console.error('Error fetching pending users:', err);
+                return res.status(500).json({ message: '데이터를 가져오는 중 오류 발생' });
+            }
+            res.status(200).json(results); // 승인 대기 중인 사용자 반환
+        });
+    });
+});
 
 //인증코드 확인
 app.post('/verify', (req, res) => {
