@@ -86,27 +86,32 @@ wss.on('connection', (ws) => {
     });
 });
 
-
-// 로그인 엔드포인트
+// 로그인 API - 어드민 OR 사용자 분류 
 app.post('/login', (req, res) => {
-  const { username, password } = req.body;
+    const { username, password } = req.body;
 
-  db.query(
-      'SELECT * FROM users WHERE username = ? AND password = ?',
-      [username, password],
-      (err, results) => {
-          if (err) {
-              console.error('Error fetching user:', err); // 오류 메시지 출력
-              return res.status(500).json({ message: 'Error fetching user' });
-          }
-          if (results.length > 0) {
-              return res.status(200).json({ message: '로그인 성공' });
-          } else {
-              return res.status(401).json({ message: '잘못된 아이디 또는 비밀번호' });
-          }
-      }
-  );
+    const query = `
+        SELECT r.permission
+        FROM users AS u
+        INNER JOIN roles AS r ON u.id = r.id
+        WHERE u.username = ? AND u.password = ?;
+    `;
+
+    db.query(query, [username, password], (err, results) => {
+        if (err) {
+            console.error('Error fetching permission:', err);
+            return res.status(500).json({ message: '서버 오류' });
+        }
+
+        if (results.length > 0) {
+            const { permission } = results[0];
+            res.status(200).json({ message: '로그인 성공', permission });
+        } else {
+            res.status(401).json({ message: '잘못된 아이디 또는 비밀번호' });
+        }
+    });
 });
+
 
 //인증코드 확인
 app.post('/verify', (req, res) => {
