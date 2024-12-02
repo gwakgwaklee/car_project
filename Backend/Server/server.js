@@ -117,7 +117,7 @@ app.post('/pending_users', (req, res) => {
     const { adminId } = req.body; // 클라이언트에서 adminId 받기
 
     // 관리자 권한 체크 (필요한 경우)
-    db.query('SELECT * FROM admins WHERE id = ?', [adminId], (err, adminResults) => {
+    db.query('SELECT * FROM roles WHERE id = ?', [adminId], (err, adminResults) => {
         if (err || adminResults.length === 0) {
             return res.status(403).json({ message: '권한 없음' }); // 권한 없으면 응답
         }
