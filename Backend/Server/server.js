@@ -117,6 +117,7 @@ app.post('/pending-users', (req, res) => {
     // 쿼리 작성
     const query = `
         SELECT 
+            ul.id,
             u.name, 
             u.birthdate, 
             ul.license_path
