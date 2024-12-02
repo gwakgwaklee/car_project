@@ -681,7 +681,8 @@ app.get('/getPassengers', (req, res) => {
             c.end_region, 
             c.start_time, 
             ce.details,
-            uv.vehicle_number -- 차량 번호 추가
+            uv.vehicle_number, -- 차량 번호 추가
+            c.driver
         FROM carpool_passengers cp
         JOIN carpool c ON cp.room_id = c.room_id
         LEFT JOIN carpool_etc ce ON c.room_id = ce.room_id
