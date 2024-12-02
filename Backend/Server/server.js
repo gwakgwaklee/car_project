@@ -115,7 +115,7 @@ app.post('/login', (req, res) => {
 // 라이센스 대기중 user 긁어오는 API
 app.post('/pending_users', (req, res) => {
     const { adminId } = req.body;
-
+    console.log(adminId);
     // 관리자 권한 체크
     db.query('SELECT * FROM roles WHERE id = ? AND permission = "어드민"', [adminId], (err, adminResults) => {
         if (err) {
