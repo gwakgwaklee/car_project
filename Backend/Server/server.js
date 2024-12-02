@@ -820,7 +820,7 @@ const deletePastCarpools = (callback) => {
   };
 
 app.post('/api/point-update', async (req, res) => {
-    const { user_id, ride_temperature, drive_temperature } = req.body;
+    const { driver_id, user_id, ride_temperature, drive_temperature } = req.body;
 
     if (!user_id || ride_temperature === undefined || drive_temperature === undefined) {
         return res.status(400).json({ message: 'user_id, ride_temperature, drive_temperature가 필요합니다.' });
@@ -864,7 +864,7 @@ app.post('/api/point-update', async (req, res) => {
             // Step 2: driver_point 테이블 업데이트 또는 삽입
             const [driverRows] = await connection.promise().query(
                 'SELECT drive_count, drive_temperature FROM driver_point WHERE id = ?',
-                [user_id]
+                [driver_id]
             );
 
             if (driverRows.length > 0) {
