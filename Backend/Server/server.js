@@ -143,7 +143,34 @@ app.post('/pending-users', (req, res) => {
     });
 });
 
+// 승인 상태 업데이트 API
+app.post('/update-approval-status', (req, res) => {
+    const { id, is_approved } = req.body;
 
+    // 요청 데이터 검증
+    if (!id || is_approved === undefined) {
+        return res.status(400).json({ message: 'ID 또는 승인 상태가 누락되었습니다.' });
+    }
+
+    const query = `
+        UPDATE user_license
+        SET is_approved = ?
+        WHERE id = ?
+    `;
+
+    db.query(query, [is_approved, id], (err, result) => {
+        if (err) {
+            console.error('승인 상태 업데이트 중 오류:', err);
+            return res.status(500).json({ message: '승인 상태 업데이트 실패' });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: '해당 사용자를 찾을 수 없습니다.' });
+        }
+
+        res.status(200).json({ message: '승인 상태 업데이트 성공' });
+    });
+});
 
 //인증코드 확인
 app.post('/verify', (req, res) => {
