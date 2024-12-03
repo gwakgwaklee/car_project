@@ -32,6 +32,7 @@ const db = mysql.createPool({
     password: '1234',               // 데이터베이스 비밀번호
     database: 'CarFull',            // 사용할 데이터베이스 이름
     port: 30240,                    // 포트 번호
+    dateStrings: true, // DATE 타입을 문자열로 반환 ... 오류 나올시 삭제하셈
 });
 
 
