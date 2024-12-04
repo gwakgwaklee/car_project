@@ -471,14 +471,16 @@ app.post('/getHint', (req, res) => {
     });
 });
 
-// 카풀 데이터 불러오기
+// 카풀 정보 가져오는 api
 app.post('/carpool_all', (req, res) => {
     const query = `
         SELECT 
             c.room_id, c.driver, c.max_passengers, c.current_passengers,
             c.start_time, c.created_at, c.start_region, c.end_region
         FROM carpool c
+        WHERE c.start_time > DATE_ADD(NOW(), INTERVAL 30 MINUTE) -- 현재 시간 + 30분 이후
     `;
+
     db.query(query, (err, results) => {
         if (err) {
             console.error('Error fetching carpool data:', err);
