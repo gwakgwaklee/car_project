@@ -143,6 +143,32 @@ app.post('/pending-users', (req, res) => {
     });
 });
 
+// 사용자의 권한을 불어오는 api
+app.post('/get-permission', (req, res) => {
+    const { id } = req.body; // 클라이언트에서 전달받은 사용자 ID
+
+    if (!id) {
+        return res.status(400).json({ message: 'id 값이 필요합니다.' });
+    }
+
+    // id에 해당하는 permission 값을 가져오는 SQL 쿼리
+    const query = 'SELECT permission FROM roles WHERE id = ?';
+
+    db.query(query, [id], (err, results) => {
+        if (err) {
+            console.error('Error fetching permission:', err);
+            return res.status(500).json({ message: '서버 오류 발생' });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ message: '해당 id에 대한 데이터가 없습니다.' });
+        }
+
+        // permission 값을 반환
+        res.json({ permission: results[0].permission });
+    });
+});
+
 // 승인 상태 업데이트 API
 app.post('/update-approval-status', (req, res) => {
     const { id, is_approved } = req.body;
