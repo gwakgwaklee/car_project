@@ -966,10 +966,21 @@ const deletePastCarpools = (callback) => {
 app.get('/getDriverCarpools', (req, res) => {
   const { id } = req.query;
 
-  const query = `
-    SELECT * FROM carpool
-    WHERE driver = ?
-  `;
+    const query = `
+        SELECT 
+            c.room_id, 
+            c.start_region, 
+            c.end_region, 
+            c.start_time, 
+            ce.details,
+            uv.vehicle_number, -- 차량 번호 추가
+            c.driver
+        FROM carpool c
+        LEFT JOIN carpool_etc ce ON c.room_id = ce.room_id
+        LEFT JOIN user_vehicle uv ON c.driver = uv.owner_id -- driver와 vehicle의 owner_id를 조인
+        WHERE c.driver = ?;
+    `;
+    
 
   db.query(query, [id], (err, results) => {
     if (err) {
