@@ -961,8 +961,23 @@ const deletePastCarpools = (callback) => {
         }
     });
 });
+app.get('/getDriverCarpools', (req, res) => {
+  const { id } = req.query;
 
+  const query = `
+    SELECT * FROM carpool
+    WHERE driver = ?
+  `;
 
+  db.query(query, [id], (err, results) => {
+    if (err) {
+      console.error('Error fetching driver carpools:', err);
+      return res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    }
+
+    res.status(200).json({ carpools: results });
+  });
+});
 
 // 기본 라우트
 app.get('/', (req, res) => {
