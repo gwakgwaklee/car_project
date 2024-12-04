@@ -792,37 +792,37 @@ const deletePastCarpools = (callback) => {
             // 트랜잭션 시작
             await connection.promise().beginTransaction();
 
-             // Step 1: 중복 평가 확인 (사용자)
-            if (user_id) {
-                const [existingUserEvaluation] = await connection.promise().query(
-                    `
-                    SELECT 1 
-                    FROM carpool_passengers 
-                    WHERE room_id = ? AND passenger_id = ?
-                    `,
-                    [room_id, user_id]
-                );
+            //  // Step 1: 중복 평가 확인 (사용자)
+            // if (user_id) {
+            //     const [existingUserEvaluation] = await connection.promise().query(
+            //         `
+            //         SELECT 1 
+            //         FROM carpool_passengers 
+            //         WHERE room_id = ? AND passenger_id = ?
+            //         `,
+            //         [room_id, user_id]
+            //     );
 
-                if (existingUserEvaluation.length > 0) {
-                    return res.status(400).json({ message: "이미 해당 room_id에 대해 사용자가 평가를 남겼습니다." });
-                }
-            }
+            //     if (existingUserEvaluation.length > 0) {
+            //         return res.status(400).json({ message: "이미 해당 room_id에 대해 사용자가 평가를 남겼습니다." });
+            //     }
+            // }
 
-            // Step 2: 중복 평가 확인 (운전자)
-            if (driver_id) {
-                const [existingDriverEvaluation] = await connection.promise().query(
-                    `
-                    SELECT 1 
-                    FROM carpool 
-                    WHERE room_id = ? AND driver = ?
-                    `,
-                    [room_id, driver_id]
-                );
+            // // Step 2: 중복 평가 확인 (운전자)
+            // if (driver_id) {
+            //     const [existingDriverEvaluation] = await connection.promise().query(
+            //         `
+            //         SELECT 1 
+            //         FROM carpool 
+            //         WHERE room_id = ? AND driver = ?
+            //         `,
+            //         [room_id, driver_id]
+            //     );
 
-                if (existingDriverEvaluation.length > 0) {
-                    return res.status(400).json({ message: "이미 해당 room_id에 대해 운전자가 평가를 남겼습니다." });
-                }
-            }
+            //     if (existingDriverEvaluation.length > 0) {
+            //         return res.status(400).json({ message: "이미 해당 room_id에 대해 운전자가 평가를 남겼습니다." });
+            //     }
+            // }
 
             // Step 3: 사용자가 평가하는 경우 (ride_temperature)
             if (ride_temperature !== undefined && user_id) {
