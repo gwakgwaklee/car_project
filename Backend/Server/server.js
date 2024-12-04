@@ -744,6 +744,7 @@ app.get('/getPassengers', (req, res) => {
         LEFT JOIN carpool_etc ce ON c.room_id = ce.room_id
         LEFT JOIN user_vehicle uv ON c.driver = uv.owner_id -- driver와 vehicle의 owner_id를 조인
         WHERE cp.passenger_id = ? -- passengers 대신 passenger_id로 수정
+        AND c.start_time > DATE_ADD(NOW(), INTERVAL 30 MINUTE) -- 현재 시간 + 30분 이후
     `;
 
     db.query(query, [id], (err, results) => {
@@ -1004,7 +1005,8 @@ app.get('/getDriverCarpools', (req, res) => {
         FROM carpool c
         LEFT JOIN carpool_etc ce ON c.room_id = ce.room_id
         LEFT JOIN user_vehicle uv ON c.driver = uv.owner_id -- driver와 vehicle의 owner_id를 조인
-        WHERE c.driver = ?;
+        WHERE c.driver = ?
+        AND c.start_time > DATE_ADD(NOW(), INTERVAL 30 MINUTE) -- 현재 시간 + 30분 이후
     `;
     
 
