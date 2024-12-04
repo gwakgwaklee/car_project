@@ -813,14 +813,10 @@ const deletePastCarpools = (callback) => {
                 const [existingDriverEvaluation] = await connection.promise().query(
                     `
                     SELECT 1 
-                    FROM driver_point 
-                    WHERE id = ? AND EXISTS (
-                        SELECT 1 
-                        FROM carpool 
-                        WHERE room_id = ? AND driver = ?
-                    )
+                    FROM carpool_passengers 
+                    WHERE room_id = ? AND passenger_id = ?
                     `,
-                    [driver_id, room_id, driver_id]
+                    [room_id, driver_id]
                 );
 
                 if (existingDriverEvaluation.length > 0) {
