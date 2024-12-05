@@ -170,7 +170,6 @@ app.post('/get-permission', (req, res) => {
 });
 
 // 승인 상태를 불러오는 API
-// 승인 상태를 불러오는 API
 app.post('/get-approval-status', (req, res) => {
     const { id } = req.body;
 
@@ -191,11 +190,19 @@ app.post('/get-approval-status', (req, res) => {
 
             if (isApproved === 0) {
                 // 승인 대기 상태
-                return res.status(200).json({ isPending: true });
+                return res.status(200).json({ isPending: true, message: '승인 대기 중입니다.' });
+            } 
+            else if (isApproved === -1) {
+                // 승인 거부 상태
+                return res.status(200).json({ isPending: false, message: '직전에 신청하신 승인이 거부되었습니다. 다시 시도해주세요.' });
+            } 
+            else if (isApproved === 1) {
+                // 승인 완료 상태
+                return res.status(200).json({ isPending: false, message: '승인 완료되었습니다.' });
             }
         } else {
             // 해당 ID에 대한 요청이 없는 경우
-            return res.status(200).json({ isPending: false }); // 요청 없음
+            return res.status(200).json({ isPending: false, message: '면허증 업로드 스크린으로 이동합니다.'});
         }
     });
 });
