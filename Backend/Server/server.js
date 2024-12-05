@@ -187,7 +187,7 @@ app.post('/get-approval-status', (req, res) => {
 
         if (results.length > 0) {
             const isApproved = results[0].is_approved;
-
+            console.log(isApproved);
             if (isApproved === 0) {
                 // 승인 대기 상태
                 return res.status(200).json({ isPending: true, message: '승인 대기 중입니다.' });
