@@ -810,7 +810,7 @@ const deletePastCarpools = (callback) => {
     });
   };
 
-app.post('/api/point-update', async (req, res) => {
+  app.post('/api/point-update', async (req, res) => {
     const { driver_id, user_id, room_id, ride_temperature, drive_temperature } = req.body;
 
     // 필수 데이터 검증
@@ -830,33 +830,61 @@ app.post('/api/point-update', async (req, res) => {
             // 트랜잭션 시작
             await connection.promise().beginTransaction();
 
-            // Step 3: 사용자가 평가하는 경우 (ride_temperature)
-            if (ride_temperature !== undefined && user_id) {
+            // Step 1: 중복 평가 확인 (사용자)
+            if (user_id&& drive_temperature !== undefined) {
+                const [existingUserEvaluation] = await connection.promise().query(
+                    `SELECT has_reviewed 
+                     FROM carpool_passengers 
+                     WHERE room_id = ? AND passenger_id = ?`,
+                    [room_id, user_id]
+                );
+
+                if (existingUserEvaluation.length > 0 && existingUserEvaluation[0].has_reviewed) {
+                    return res.status(400).json({ message: "이미 해당 카풀에 대해 별점을 남겼습니다." });
+                }
+            }
+
+            // Step 2: 운전자의 중복 평가 확인 (운전자 별점)
+            if (driver_id && ride_temperature !== undefined) {
+                // 모든 승객의 has_reviewed 상태 확인
+                const [passengers] = await connection.promise().query(
+                    `SELECT passenger_id, has_reviewed 
+                    FROM carpool_passengers 
+                    WHERE room_id = ? AND driver_id = ?`,
+                    [room_id, driver_id]
+                );
+
+                // 모든 승객의 has_reviewed 상태 확인
+                const allReviewed = passengers.every((passenger) => passenger.has_reviewed === 1);
+
+                if (!allReviewed) {
+                    return res.status(400).json({ message: "모든 승객이 평가를 완료하지 않았습니다." });
+                }
+            }
+
+
+            // Step 1: 승객이 별점 제출 (ride_temperature는 무시, drive_temperature만 반영)
+            if (drive_temperature !== undefined && user_id) {
                 const [userRows] = await connection.promise().query(
-                    'SELECT ride_count, ride_temperature FROM user_point WHERE id = ?',
+                    'SELECT ride_count FROM user_point WHERE id = ?',
                     [user_id]
                 );
 
                 let updatedRideCount = userRows.length > 0 ? userRows[0].ride_count + 1 : 1;
-                let updatedRideTemp = userRows.length > 0
-                    ? (userRows[0].ride_temperature * userRows[0].ride_count + ride_temperature) / updatedRideCount
-                    : ride_temperature;
 
                 if (userRows.length > 0) {
                     await connection.promise().query(
-                        'UPDATE user_point SET ride_count = ?, ride_temperature = ?, updated_at = NOW() WHERE id = ?',
-                        [updatedRideCount, updatedRideTemp, user_id]
+                        'UPDATE user_point SET ride_count = ?, updated_at = NOW() WHERE id = ?',
+                        [updatedRideCount, user_id]
                     );
                 } else {
                     await connection.promise().query(
-                        'INSERT INTO user_point (id, ride_count, ride_temperature, updated_at) VALUES (?, ?, ?, NOW())',
-                        [user_id, updatedRideCount, ride_temperature]
+                        'INSERT INTO user_point (id, ride_count, updated_at) VALUES (?, ?, NOW())',
+                        [user_id, updatedRideCount]
                     );
                 }
-            }
 
-            // Step 4: 운전자가 평가받는 경우 (drive_temperature)
-            if (drive_temperature !== undefined && driver_id) {
+                // 운전자의 drive_temperature 업데이트
                 const [driverRows] = await connection.promise().query(
                     'SELECT drive_count, drive_temperature FROM driver_point WHERE id = ?',
                     [driver_id]
@@ -879,35 +907,49 @@ app.post('/api/point-update', async (req, res) => {
                     );
                 }
 
-                // Step 5: 운전자가 별점을 남기면 해당 카풀의 모든 승객들에 대해 업데이트
+                // 승객 평가 상태 업데이트
+                await connection.promise().query(
+                    'UPDATE carpool_passengers SET do_review = 1 WHERE room_id = ? AND passenger_id = ?',
+                    [room_id, user_id]
+                );
+            }
+
+            // Step 2: 운전자가 별점 제출 (ride_temperature 반영)
+            if (ride_temperature !== undefined && driver_id) {
                 const [passengers] = await connection.promise().query(
                     'SELECT passenger_id FROM carpool_passengers WHERE room_id = ?',
                     [room_id]
                 );
 
-                for (let passenger of passengers) {
-                    const [userPoint] = await connection.promise().query(
+                for (const passenger of passengers) {
+                    const [userRows] = await connection.promise().query(
                         'SELECT ride_count, ride_temperature FROM user_point WHERE id = ?',
                         [passenger.passenger_id]
                     );
 
-                    let updatedUserRideCount = userPoint.length > 0 ? userPoint[0].ride_count + 1 : 1;
-                    let updatedUserRideTemp = userPoint.length > 0
-                        ? (userPoint[0].ride_temperature * userPoint[0].ride_count + drive_temperature) / updatedUserRideCount
-                        : drive_temperature;
+                    let updatedRideCount = userRows.length > 0 ? userRows[0].ride_count + 1 : 1;
+                    let updatedRideTemp = userRows.length > 0
+                        ? (userRows[0].ride_temperature * userRows[0].ride_count + ride_temperature) / updatedRideCount
+                        : ride_temperature;
 
-                    if (userPoint.length > 0) {
+                    if (userRows.length > 0) {
                         await connection.promise().query(
                             'UPDATE user_point SET ride_count = ?, ride_temperature = ?, updated_at = NOW() WHERE id = ?',
-                            [updatedUserRideCount, updatedUserRideTemp, passenger.passenger_id]
+                            [updatedRideCount, updatedRideTemp, passenger.passenger_id]
                         );
                     } else {
                         await connection.promise().query(
                             'INSERT INTO user_point (id, ride_count, ride_temperature, updated_at) VALUES (?, ?, ?, NOW())',
-                            [passenger.passenger_id, updatedUserRideCount, drive_temperature]
+                            [passenger.passenger_id, updatedRideCount, ride_temperature]
                         );
                     }
                 }
+
+                // 운전자 평가 상태 업데이트
+                await connection.promise().query(
+                    'UPDATE carpool_passengers SET has_reviewed = 1 WHERE room_id = ?',
+                    [room_id]
+                );
             }
 
             // 트랜잭션 커밋
