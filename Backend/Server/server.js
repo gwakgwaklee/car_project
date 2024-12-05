@@ -198,6 +198,32 @@ app.post('/update-approval-status', (req, res) => {
     });
 });
 
+// 면허 정보 업데이트 API
+app.post("/update-license", async (req, res) => {
+    const { id, license_path, is_approved } = req.body;
+
+    if (!id || !license_path || typeof is_approved !== "number") {
+        return res.status(400).json({ message: "필수 데이터가 누락되었습니다." });
+    }
+
+    try {
+        const [result] = await db.query(
+            "UPDATE licenses SET license_path = ?, is_approved = ?, uploaded_at = NOW() WHERE id = ?",
+            [license_path, is_approved, id]
+        );
+
+        if (result.affectedRows > 0) {
+            res.status(200).json({ message: "면허 정보가 성공적으로 업데이트되었습니다." });
+        } else {
+            res.status(404).json({ message: "해당 ID를 찾을 수 없습니다." });
+        }
+    } catch (error) {
+        console.error("데이터베이스 오류:", error);
+        res.status(500).json({ message: "서버 오류가 발생했습니다." });
+    }
+});
+
+
 //인증코드 확인
 app.post('/verify', (req, res) => {
     const { username, verificationCode } = req.body;
