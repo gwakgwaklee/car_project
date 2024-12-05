@@ -178,7 +178,7 @@ app.post('/get-approval-status', (req, res) => {
     }
 
     // `user_license` 테이블에서 `is_approved` 상태 확인
-    const query = 'SELECT is_approved FROM user_license WHERE user_id = ?';
+    const query = 'SELECT is_approved FROM user_license WHERE id = ?';
     db.query(query, [id], (err, results) => {
         if (err) {
             console.error('Database error:', err);
