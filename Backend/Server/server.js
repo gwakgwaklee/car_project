@@ -198,27 +198,39 @@ app.post('/update-approval-status', (req, res) => {
     });
 });
 
-// 면허 정보 업데이트 API
-app.post("/update-license", async (req, res) => {
-    const { id, license_path, is_approved } = req.body;
+app.post('/license-request', async (req, res) => {
+    const { id, license_path } = req.body;
+
+    // 필수 데이터 검증
+    if (!id || !license_path) {
+        return res.status(400).json({ message: "필수 데이터가 누락되었습니다." });
+    }
+
+    // 쿼리: 기존 유저는 업데이트, 신규 유저는 삽입
+    const query = `
+        INSERT INTO user_license (id, license_path, is_approved, uploaded_at)
+        VALUES (?, ?, 0, NOW())
+        ON DUPLICATE KEY UPDATE
+            license_path = VALUES(license_path),
+            is_approved = 0, -- 다시 승인 대기 상태로 변경
+            uploaded_at = NOW();
+            `;
 
     try {
-        const [result] = await db.promise().query(
-            "UPDATE user_license SET license_path = ?, is_approved = ?, uploaded_at = NOW() WHERE id = ?",
-            [license_path, is_approved, id]
-        );
+        // 데이터베이스 실행
+        const [result] = await db.query(query, [id, license_path]);
 
         if (result.affectedRows > 0) {
-            res.status(200).json({ message: "면허 정보가 성공적으로 업데이트되었습니다." });
+            const action = result.insertId ? "삽입" : "업데이트";
+            res.status(200).json({ message: `라이센스 정보가 성공적으로 ${action}되었습니다.` });
         } else {
-            res.status(404).json({ message: "해당 ID를 찾을 수 없습니다." });
+            res.status(500).json({ message: "삽입 또는 업데이트에 실패했습니다." });
         }
     } catch (error) {
-        console.error("데이터베이스 오류:", error);
+        console.error("Database Error:", error);
         res.status(500).json({ message: "서버 오류가 발생했습니다." });
     }
 });
-
 
 
 
