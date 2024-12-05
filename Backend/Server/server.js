@@ -197,7 +197,7 @@ app.post('/get-approval-status', (req, res) => {
             }
         } else {
             // 해당 ID에 대한 요청이 없는 경우
-            return res.status(404).json({ message: '승인 요청 기록이 없습니다.' });
+            return;
         }
     });
 });
