@@ -198,6 +198,7 @@ app.post('/update-approval-status', (req, res) => {
     });
 });
 
+// 신규 및 새로 라이센스를 승인 요청 
 app.post('/license-request', async (req, res) => {
     const { id, license_path } = req.body;
 
