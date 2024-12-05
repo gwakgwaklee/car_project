@@ -833,13 +833,13 @@ const deletePastCarpools = (callback) => {
             // Step 1: 중복 평가 확인 (사용자)
             if (user_id&& ride_temperature == undefined) {
                 const [existingUserEvaluation] = await connection.promise().query(
-                    `SELECT has_reviewed 
+                    `SELECT do_view 
                      FROM carpool_passengers 
                      WHERE room_id = ? AND passenger_id = ?`,
                     [room_id, user_id]
                 );
 
-                if (existingUserEvaluation.length > 0 && existingUserEvaluation[0].has_reviewed==1) {
+                if (existingUserEvaluation.length > 0 && existingUserEvaluation[0].do_view==1) {
                     return res.status(400).json({ message: "이미 해당 카풀에 대해 별점을 남겼습니다." });
                 }
             }
