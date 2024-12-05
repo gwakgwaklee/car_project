@@ -850,8 +850,8 @@ const deletePastCarpools = (callback) => {
                 const [passengers] = await connection.promise().query(
                     `SELECT passenger_id, has_reviewed 
                     FROM carpool_passengers 
-                    WHERE room_id = ? AND driver_id = ?`,
-                    [room_id, driver_id]
+                    WHERE room_id = ?`,
+                    [room_id]
                 );
 
                 // 모든 승객의 has_reviewed 상태 확인
