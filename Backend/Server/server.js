@@ -202,13 +202,9 @@ app.post('/update-approval-status', (req, res) => {
 app.post("/update-license", async (req, res) => {
     const { id, license_path, is_approved } = req.body;
 
-    if (!id || !license_path || typeof is_approved !== "number") {
-        return res.status(400).json({ message: "필수 데이터가 누락되었습니다." });
-    }
-
     try {
-        const [result] = await db.query(
-            "UPDATE licenses SET license_path = ?, is_approved = ?, uploaded_at = NOW() WHERE id = ?",
+        const [result] = await db.promise().query(
+            "UPDATE user_license SET license_path = ?, is_approved = ?, uploaded_at = NOW() WHERE id = ?",
             [license_path, is_approved, id]
         );
 
@@ -222,6 +218,8 @@ app.post("/update-license", async (req, res) => {
         res.status(500).json({ message: "서버 오류가 발생했습니다." });
     }
 });
+
+
 
 
 //인증코드 확인
