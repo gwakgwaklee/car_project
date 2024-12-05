@@ -839,7 +839,7 @@ const deletePastCarpools = (callback) => {
                     [room_id, user_id]
                 );
 
-                if (existingUserEvaluation.length > 0 && existingUserEvaluation[0].has_reviewed) {
+                if (existingUserEvaluation.length > 0 && existingUserEvaluation[0].has_reviewed==1) {
                     return res.status(400).json({ message: "이미 해당 카풀에 대해 별점을 남겼습니다." });
                 }
             }
