@@ -1,7 +1,7 @@
 // const path = require('path');
 // require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 const express = require('express');
-const mysql = require('mysql2/promise'); // promise 기반 모듈 사용
+const mysql = require('mysql2'); // promise 기반 모듈 사용
 const cors = require('cors');
 const dayjs = require('dayjs');
 const http = require('http');
