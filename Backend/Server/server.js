@@ -194,7 +194,7 @@ app.post('/get-approval-status', (req, res) => {
             } 
             else if (isApproved === -1) {
                 // 승인 거부 상태
-                return res.status(200).json({ isPending: false, message: '직전에 신청하신 승인이 거부되었습니다. 다시 시도해주세요.' });
+                return res.status(200).json({ isPending: false, message: '직전에 신청하신 승인이 거부되었습니다.\n 다시 시도해주세요.' });
             } 
         } else {
             // 해당 ID에 대한 요청이 없는 경우
