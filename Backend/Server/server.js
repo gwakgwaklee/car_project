@@ -169,6 +169,40 @@ app.post('/get-permission', (req, res) => {
     });
 });
 
+// 승인 상태를 불러오는 API
+app.post('/license-status', (req, res) => {
+    const { id } = req.body;
+
+    if (!id) {
+        return res.status(400).json({ message: '사용자 ID가 제공되지 않았습니다.' });
+    }
+
+    // `user_license` 테이블에서 `is_approved` 상태 확인
+    const query = 'SELECT is_approved FROM user_license WHERE user_id = ?';
+    db.query(query, [id], (err, results) => {
+        if (err) {
+            console.error('Database error:', err);
+            return res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+        }
+
+        if (results.length > 0) {
+            const isApproved = results[0].is_approved;
+
+            if (isApproved === 0) {
+                // 승인 대기 상태
+                return res.status(200).json({ isPending: true });
+            } else {
+                // 승인 완료 상태
+                return res.status(200).json({ isPending: false });
+            }
+        } else {
+            // 해당 ID에 대한 요청이 없는 경우
+            return res.status(404).json({ message: '승인 요청 기록이 없습니다.' });
+        }
+    });
+});
+
+
 // 승인 상태 업데이트 API
 app.post('/update-approval-status', (req, res) => {
     const { id, is_approved } = req.body;
