@@ -857,7 +857,7 @@ const deletePastCarpools = (callback) => {
                 // 모든 승객의 has_reviewed 상태 확인
                 const allReviewed = passengers.every((passenger) => passenger.has_reviewed === 1);
 
-                if (!allReviewed) {
+                if (allReviewed) {
                     return res.status(400).json({ message: "모든 승객이 평가를 완료하지 않았습니다." });
                 }
             }
