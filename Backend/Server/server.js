@@ -170,7 +170,7 @@ app.post('/get-permission', (req, res) => {
 });
 
 // 승인 상태를 불러오는 API
-app.post('/license-status', (req, res) => {
+app.post('/get-approval-status', (req, res) => {
     const { id } = req.body;
 
     if (!id) {
