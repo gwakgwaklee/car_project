@@ -831,7 +831,7 @@ const deletePastCarpools = (callback) => {
             await connection.promise().beginTransaction();
 
             // Step 1: 중복 평가 확인 (사용자)
-            if (user_id&& drive_temperature !== undefined) {
+            if (user_id&& ride_temperature !== undefined) {
                 const [existingUserEvaluation] = await connection.promise().query(
                     `SELECT has_reviewed 
                      FROM carpool_passengers 
@@ -845,7 +845,7 @@ const deletePastCarpools = (callback) => {
             }
 
             // Step 2: 운전자의 중복 평가 확인 (운전자 별점)
-            if (driver_id && ride_temperature !== undefined) {
+            if (driver_id && drive_temperature !== undefined) {
                 // 모든 승객의 has_reviewed 상태 확인
                 const [passengers] = await connection.promise().query(
                     `SELECT passenger_id, has_reviewed 
