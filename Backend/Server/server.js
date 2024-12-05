@@ -810,7 +810,7 @@ const deletePastCarpools = (callback) => {
     });
   };
 
-  app.post('/api/point-update', async (req, res) => {
+app.post('/api/point-update', async (req, res) => {
     const { driver_id, user_id, room_id, ride_temperature, drive_temperature } = req.body;
 
     // 필수 데이터 검증
@@ -829,38 +829,6 @@ const deletePastCarpools = (callback) => {
         try {
             // 트랜잭션 시작
             await connection.promise().beginTransaction();
-
-            //  // Step 1: 중복 평가 확인 (사용자)
-            // if (user_id) {
-            //     const [existingUserEvaluation] = await connection.promise().query(
-            //         `
-            //         SELECT 1 
-            //         FROM carpool_passengers 
-            //         WHERE room_id = ? AND passenger_id = ?
-            //         `,
-            //         [room_id, user_id]
-            //     );
-
-            //     if (existingUserEvaluation.length > 0) {
-            //         return res.status(400).json({ message: "이미 해당 room_id에 대해 사용자가 평가를 남겼습니다." });
-            //     }
-            // }
-
-            // // Step 2: 중복 평가 확인 (운전자)
-            // if (driver_id) {
-            //     const [existingDriverEvaluation] = await connection.promise().query(
-            //         `
-            //         SELECT 1 
-            //         FROM carpool 
-            //         WHERE room_id = ? AND driver = ?
-            //         `,
-            //         [room_id, driver_id]
-            //     );
-
-            //     if (existingDriverEvaluation.length > 0) {
-            //         return res.status(400).json({ message: "이미 해당 room_id에 대해 운전자가 평가를 남겼습니다." });
-            //     }
-            // }
 
             // Step 3: 사용자가 평가하는 경우 (ride_temperature)
             if (ride_temperature !== undefined && user_id) {
@@ -907,8 +875,38 @@ const deletePastCarpools = (callback) => {
                 } else {
                     await connection.promise().query(
                         'INSERT INTO driver_point (id, drive_count, drive_temperature, updated_at) VALUES (?, ?, ?, NOW())',
-                        [driver_id, updatedDriveCount, updatedDriveTemp]
+                        [driver_id, updatedDriveCount, drive_temperature]
                     );
+                }
+
+                // Step 5: 운전자가 별점을 남기면 해당 카풀의 모든 승객들에 대해 업데이트
+                const [passengers] = await connection.promise().query(
+                    'SELECT passenger_id FROM carpool_passengers WHERE room_id = ?',
+                    [room_id]
+                );
+
+                for (let passenger of passengers) {
+                    const [userPoint] = await connection.promise().query(
+                        'SELECT ride_count, ride_temperature FROM user_point WHERE id = ?',
+                        [passenger.passenger_id]
+                    );
+
+                    let updatedUserRideCount = userPoint.length > 0 ? userPoint[0].ride_count + 1 : 1;
+                    let updatedUserRideTemp = userPoint.length > 0
+                        ? (userPoint[0].ride_temperature * userPoint[0].ride_count + drive_temperature) / updatedUserRideCount
+                        : drive_temperature;
+
+                    if (userPoint.length > 0) {
+                        await connection.promise().query(
+                            'UPDATE user_point SET ride_count = ?, ride_temperature = ?, updated_at = NOW() WHERE id = ?',
+                            [updatedUserRideCount, updatedUserRideTemp, passenger.passenger_id]
+                        );
+                    } else {
+                        await connection.promise().query(
+                            'INSERT INTO user_point (id, ride_count, ride_temperature, updated_at) VALUES (?, ?, ?, NOW())',
+                            [passenger.passenger_id, updatedUserRideCount, drive_temperature]
+                        );
+                    }
                 }
             }
 
@@ -926,6 +924,7 @@ const deletePastCarpools = (callback) => {
         }
     });
 });
+
 app.get('/getDriverCarpools', (req, res) => {
   const { id } = req.query;
 
