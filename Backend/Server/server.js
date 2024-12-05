@@ -198,7 +198,7 @@ app.post('/update-approval-status', (req, res) => {
     });
 });
 
-// 신규 및 새로 라이센스를 승인 요청 
+// 신규 및 새로 라이센스를 승인 요청
 app.post('/license-request', async (req, res) => {
     const { id, license_path } = req.body;
 
@@ -215,24 +215,25 @@ app.post('/license-request', async (req, res) => {
             license_path = VALUES(license_path),
             is_approved = 0, -- 다시 승인 대기 상태로 변경
             uploaded_at = NOW();
-            `;
+    `;
 
     try {
         // 데이터베이스 실행
-        const [result] = await db.query(query, [id, license_path]);
+        const [result] = await db.promise().query(query, [id, license_path]);
 
+        // 결과 처리
         if (result.affectedRows > 0) {
-            const action = result.insertId ? "삽입" : "업데이트";
+            const action = result.insertId ? "삽입" : "업데이트"; // insertId가 0이면 업데이트
             res.status(200).json({ message: `라이센스 정보가 성공적으로 ${action}되었습니다.` });
         } else {
             res.status(500).json({ message: "삽입 또는 업데이트에 실패했습니다." });
         }
     } catch (error) {
+        // 오류 처리
         console.error("Database Error:", error);
         res.status(500).json({ message: "서버 오류가 발생했습니다." });
     }
 });
-
 
 
 //인증코드 확인
