@@ -170,6 +170,7 @@ app.post('/get-permission', (req, res) => {
 });
 
 // 승인 상태를 불러오는 API
+// 승인 상태를 불러오는 API
 app.post('/get-approval-status', (req, res) => {
     const { id } = req.body;
 
@@ -191,13 +192,10 @@ app.post('/get-approval-status', (req, res) => {
             if (isApproved === 0) {
                 // 승인 대기 상태
                 return res.status(200).json({ isPending: true });
-            } else {
-                // 승인 완료 상태
-                return res.status(200).json({ isPending: false });
             }
         } else {
             // 해당 ID에 대한 요청이 없는 경우
-            return;
+            return res.status(200).json({ isPending: false }); // 요청 없음
         }
     });
 });
