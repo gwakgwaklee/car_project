@@ -203,6 +203,53 @@ app.post('/get-approval-status', (req, res) => {
     });
 });
 
+// 탑승 내역 조회
+app.post('/get-passenger-history', (req, res) => {
+    const { id } = req.body; // 사용자 ID
+    if (!id) {
+        return res.status(400).json({ message: '사용자 ID가 필요합니다.' });
+    }
+
+    const query = `
+      SELECT c.room_id, c.date, c.start_region, c.end_region
+      FROM carpool_passengers cp
+      INNER JOIN carpool c ON cp.room_id = c.room_id
+      WHERE cp.passenger_id = ?
+      ORDER BY c.date DESC;
+    `;
+
+    db.query(query, [id], (err, results) => {
+        if (err) {
+            console.error('탑승 내역 조회 오류:', err);
+            return res.status(500).json({ message: '탑승 내역 조회 중 오류가 발생했습니다.' });
+        }
+        res.json({ history: results });
+    });
+});
+
+// 운전 내역 조회
+app.post('/get-driver-history', (req, res) => {
+    const { id } = req.body; // 사용자 ID
+    if (!id) {
+        return res.status(400).json({ message: '사용자 ID가 필요합니다.' });
+    }
+
+    const query = `
+      SELECT c.room_id, c.date, c.start_region, c.end_region
+      FROM carpool c
+      WHERE c.driver = ?
+      ORDER BY c.date DESC;
+    `;
+
+    db.query(query, [id], (err, results) => {
+        if (err) {
+            console.error('운전 내역 조회 오류:', err);
+            return res.status(500).json({ message: '운전 내역 조회 중 오류가 발생했습니다.' });
+        }
+        res.json({ history: results });
+    });
+});
+
 
 // 승인 상태 업데이트 API
 app.post('/update-approval-status', (req, res) => {
