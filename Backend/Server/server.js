@@ -330,10 +330,10 @@ app.post('/get-driver-history', (req, res) => {
 
 // 신규 및 새로 라이센스를 승인 요청
 app.post('/license-request', async (req, res) => {
-    const { id, license_path } = req.body;
+    const { id, license_path, vehicle_number, vehicle_type } = req.body;
 
     // 필수 데이터 검증
-    if (!id || !license_path) {
+    if (!id || !license_path || !vehicle_number || !vehicle_type) {
         return res.status(400).json({ message: "필수 데이터가 누락되었습니다." });
     }
 
@@ -343,27 +343,27 @@ app.post('/license-request', async (req, res) => {
         VALUES (?, ?, 0, NOW())
         ON DUPLICATE KEY UPDATE
             license_path = VALUES(license_path),
-            is_approved = 0, -- 다시 승인 대기 상태로 변경
+            is_approved = 0,
             uploaded_at = NOW();
+
+        INSERT INTO user_vehicle (owner_id, vehicle_number, vehicle_type)
+        VALUES (?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+            vehicle_number = VALUES(vehicle_number),
+            vehicle_type = VALUES(vehicle_type);
     `;
 
     try {
         // 데이터베이스 실행
-        const [result] = await db.promise().query(query, [id, license_path]);
+        await db.promise().query(query, [id, license_path, id, vehicle_number, vehicle_type]);
 
-        // 결과 처리
-        if (result.affectedRows > 0) {
-            const action = result.insertId ? "삽입" : "업데이트"; // insertId가 0이면 업데이트
-            res.status(200).json({ message: `라이센스 정보가 성공적으로 ${action}되었습니다.` });
-        } else {
-            res.status(500).json({ message: "삽입 또는 업데이트에 실패했습니다." });
-        }
+        res.status(200).json({ message: "라이센스와 차량 정보가 성공적으로 처리되었습니다." });
     } catch (error) {
-        // 오류 처리
         console.error("Database Error:", error);
         res.status(500).json({ message: "서버 오류가 발생했습니다." });
     }
 });
+
 
 
 //인증코드 확인
