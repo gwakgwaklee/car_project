@@ -1155,7 +1155,7 @@ app.get('/getDriverCarpools', (req, res) => {
       console.error('Error fetching driver carpools:', err);
       return res.status(500).json({ message: '서버 오류가 발생했습니다.' });
     }
-
+    console.log('Driver Carpools:', results); // 쿼리 결과 출력
     res.status(200).json({ carpools: results });
   });
 });
