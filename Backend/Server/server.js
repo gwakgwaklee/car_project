@@ -262,8 +262,7 @@ app.post('/update-approval-status', (req, res) => {
 
     const query = `
         UPDATE user_license
-        SET is_approved = ?
-        approved_at = CURRENT_TIMESTAMP()
+        SET is_approved = ?, approved_at = CURRENT_TIMESTAMP()
         WHERE id = ?
     `;
 
