@@ -504,8 +504,22 @@ app.post('/resendCode', (req, res) => {
 
 // 회원가입 요청 API
 app.post('/signup', async (req, res) => {
-    const { username, password, birthdate, name, email, phone, vehicle, vehicleNumber, vehicleType, licenseImage } = req.body;
-    const verification_code = Math.floor(100000 + Math.random() * 900000);
+    const { 
+        username, 
+        password, 
+        birthdate, 
+        name, 
+        email, 
+        phone, 
+        vehicle, 
+        vehicleNumber, 
+        vehicleType, 
+        licenseImage, 
+        hint, 
+        hintAnswer 
+    } = req.body;
+
+    const verification_code = Math.floor(100000 + Math.random() * 900000); // 6자리 인증 코드
     const code_expiration = new Date(Date.now() + 10 * 60 * 1000); // 10분 후 만료
     const is_verified = 0;
 
@@ -521,8 +535,20 @@ app.post('/signup', async (req, res) => {
 
             // Step 1: 사용자 데이터 삽입
             const userInsertQuery = `
-                INSERT INTO users (username, email, password, birthdate, name, phone, verification_code, code_expiration, is_verified)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO users (
+                    username, 
+                    email, 
+                    password, 
+                    birthdate, 
+                    name, 
+                    phone, 
+                    hint, 
+                    hintAnswer, 
+                    verification_code, 
+                    code_expiration, 
+                    is_verified
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
             const [userResult] = await connection.promise().query(userInsertQuery, [
                 username,
@@ -531,6 +557,8 @@ app.post('/signup', async (req, res) => {
                 birthdate,
                 name,
                 phone,
+                hint,
+                hintAnswer,
                 verification_code,
                 code_expiration,
                 is_verified,
@@ -551,13 +579,15 @@ app.post('/signup', async (req, res) => {
             // Step 3: 차량 및 라이센스 정보 삽입 (선택적)
             if (vehicle === '유') {
                 const licenseInsertQuery = `
-                INSERT INTO user_license (id, license_path, is_approved, uploaded_at)
-                VALUES (?, ?, 0, NOW())`;
-                await connection.promise().query(licenseInsertQuery, [userId, licenseImage]); // is_approved 기본값은 0
+                    INSERT INTO user_license (id, license_path, is_approved, uploaded_at)
+                    VALUES (?, ?, 0, NOW())
+                `;
+                await connection.promise().query(licenseInsertQuery, [userId, licenseImage]);
 
                 const vehicleInsertQuery = `
-                 INSERT INTO user_vehicle (owner_id, vehicle_number, vehicle_type)
-                VALUES (?, ?, ?)`;
+                    INSERT INTO user_vehicle (owner_id, vehicle_number, vehicle_type)
+                    VALUES (?, ?, ?)
+                `;
                 await connection.promise().query(vehicleInsertQuery, [
                     userId,
                     vehicleNumber,
@@ -581,6 +611,7 @@ app.post('/signup', async (req, res) => {
         }
     });
 });
+
 
 
 
