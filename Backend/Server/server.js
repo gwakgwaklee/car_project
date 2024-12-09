@@ -337,25 +337,27 @@ app.post('/license-request', async (req, res) => {
         return res.status(400).json({ message: "필수 데이터가 누락되었습니다." });
     }
 
-    // 쿼리: 기존 유저는 업데이트, 신규 유저는 삽입
-    const query = `
-        INSERT INTO user_license (id, license_path, is_approved, uploaded_at)
-        VALUES (?, ?, 0, NOW())
-        ON DUPLICATE KEY UPDATE
-            license_path = VALUES(license_path),
-            is_approved = 0,
-            uploaded_at = NOW();
-
-        INSERT INTO user_vehicle (owner_id, vehicle_number, vehicle_type)
-        VALUES (?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-            vehicle_number = VALUES(vehicle_number),
-            vehicle_type = VALUES(vehicle_type);
-    `;
-
     try {
-        // 데이터베이스 실행
-        await db.promise().query(query, [id, license_path, id, vehicle_number, vehicle_type]);
+        // 첫 번째 쿼리: user_license 테이블 업데이트 또는 삽입
+        const licenseQuery = `
+            INSERT INTO user_license (id, license_path, is_approved, uploaded_at)
+            VALUES (?, ?, 0, NOW())
+            ON DUPLICATE KEY UPDATE
+                license_path = VALUES(license_path),
+                is_approved = 0,
+                uploaded_at = NOW();
+        `;
+        await db.promise().query(licenseQuery, [id, license_path]);
+
+        // 두 번째 쿼리: user_vehicle 테이블 업데이트 또는 삽입
+        const vehicleQuery = `
+            INSERT INTO user_vehicle (owner_id, vehicle_number, vehicle_type)
+            VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                vehicle_number = VALUES(vehicle_number),
+                vehicle_type = VALUES(vehicle_type);
+        `;
+        await db.promise().query(vehicleQuery, [id, vehicle_number, vehicle_type]);
 
         res.status(200).json({ message: "라이센스와 차량 정보가 성공적으로 처리되었습니다." });
     } catch (error) {
