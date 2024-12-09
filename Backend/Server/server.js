@@ -543,7 +543,7 @@ app.post('/signup', async (req, res) => {
                     name, 
                     phone, 
                     hint, 
-                    hintAnswer, 
+                    hintanswer, 
                     verification_code, 
                     code_expiration, 
                     is_verified
