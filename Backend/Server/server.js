@@ -543,7 +543,7 @@ app.post('/signup', async (req, res) => {
                     name, 
                     phone, 
                     hint, 
-                    hintanswer, 
+                    hint_answer, 
                     verification_code, 
                     code_expiration, 
                     is_verified
@@ -558,7 +558,7 @@ app.post('/signup', async (req, res) => {
                 name,
                 phone,
                 hint,
-                hintAnswer,
+                hintAnswer, // 여기서 수정됨
                 verification_code,
                 code_expiration,
                 is_verified,
